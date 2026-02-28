@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Janela → Viewport — Viewing 2D</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #1a1a2e; color: #e0e0e0;
+      display: flex; flex-direction: column; align-items: center; padding: 20px; gap: 16px; }
+    h1 { color: #a29bfe; font-size: 1.5rem; text-align: center; }
+    .subtitle { color: #aaa; font-size: 0.9rem; text-align: center; }
+    .teoria { background: #16213e; border-left: 4px solid #a29bfe; padding: 14px 18px;
+      max-width: 920px; width: 100%; border-radius: 4px; font-size: 0.86rem; line-height: 1.7; }
+    .teoria h2 { color: #a29bfe; margin-bottom: 8px; font-size: 1rem; }
+    .teoria code { background: #0f3460; padding: 2px 6px; border-radius: 3px;
+      font-family: monospace; color: #f0c040; }
+    .formula { font-family: monospace; background: #0f3460; padding: 8px 14px;
+      border-radius: 4px; display: inline-block; margin: 6px 0; font-size: 0.9rem;
+      color: #f0c040; line-height: 2; }
+    .painel-ctrl { display: flex; gap: 14px; max-width: 920px; width: 100%; flex-wrap: wrap; }
+    .painel-ctrl > div { background: #16213e; border-radius: 6px; padding: 12px 14px; flex: 1; min-width: 200px; }
+    .painel-ctrl h3 { font-size: 0.9rem; margin-bottom: 8px; }
+    .painel-ctrl label { font-size: 0.82rem; color: #aaa; display: flex; align-items: center;
+      gap: 6px; margin: 4px 0; }
+    .painel-ctrl input[type="number"] { width: 72px; padding: 3px 6px; background: #0f3460;
+      border: 1px solid #a29bfe44; color: #fff; border-radius: 4px; text-align: center; font-size: 0.82rem; }
+    button { padding: 6px 14px; background: #a29bfe; color: #000; border: none;
+      border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.85rem; }
+    button:hover { background: #6c5ce7; color: #fff; }
+    button.sec { background: #0f3460; color: #fff; border: 1px solid #a29bfe44; }
+    button.sec:hover { background: #1a4a80; }
+    .canvases { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
+    .canvas-box { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .canvas-box p { font-size: 0.82rem; color: #aaa; }
+    canvas { border-radius: 4px; }
+    #cJanela   { border: 2px solid #ff475744; background: #0a0a14; }
+    #cViewport { border: 2px solid #55efc444; background: #0a0a14; }
+    .estado { background: #0f3460; border-radius: 6px; padding: 10px 16px; max-width: 920px;
+      width: 100%; font-family: monospace; font-size: 0.8rem; color: #7effd4; line-height: 1.8; }
+    .seta { color: #a29bfe; font-size: 1.2rem; display: flex; align-items: center; }
+  </style>
+</head>
+<body>
+
+<!--
+  AULA: TRANSFORMAÇÃO JANELA → VIEWPORT (VIEWING 2D)
+  =====================================================================
+  OBJETIVO:
+    Demonstrar como funciona o mapeamento de coordenadas do MUNDO
+    (Janela/Window) para coordenadas de CANVAS/TELA (Viewport).
+
+  CONCEITO:
+    O pipeline de viewing 2D tem dois espaços:
+
+    1. JANELA (Window):
+       - Coordenadas do mundo (definidas pelo programador)
+       - Pode ter qualquer escala: metros, km, unidades lógicas...
+       - Define o que está sendo "olhado" no mundo
+
+    2. VIEWPORT (Área de visualização):
+       - Coordenadas de pixels na tela
+       - Define onde no canvas o resultado é desenhado
+
+  FÓRMULA DE TRANSFORMAÇÃO:
+    Para um ponto (xw, yw) na janela → ponto (xv, yv) no viewport:
+
+      xv = vx_min + (xw - wx_min) / (wx_max - wx_min) * (vx_max - vx_min)
+      yv = vy_min + (yw - wy_min) / (wy_max - wy_min) * (vy_max - vy_min)
+
+    Simplificando — fatores de escala:
+      sx = (vx_max - vx_min) / (wx_max - wx_min)
+      sy = (vy_max - vy_min) / (wy_max - wy_min)
+
+      xv = vx_min + (xw - wx_min) * sx
+      yv = vy_min + (yw - wy_min) * sy
+
+  EQUIVALÊNCIA COM THREE.JS / CAMERAS:
+    OrthographicCamera(-left, right, top, -bottom) define exatamente
+    a janela, e o renderer.setViewport() define o viewport.
+    O Three.js calcula essa transformação internamente.
+-->
+
+<h1>Janela → Viewport — Transformação de Viewing 2D</h1>
+<p class="subtitle">Mapeamento de coordenadas do mundo para coordenadas de tela</p>
+
+<div class="teoria">
+  <h2>Fórmula de mapeamento Janela → Viewport</h2>
+  <div class="formula">
+xv = vx_min + (xw − wx_min) × (vx_max − vx_min) / (wx_max − wx_min)<br>
+yv = vy_min + (yw − wy_min) × (vy_max − vy_min) / (wy_max − wy_min)
+  </div>
+  <p style="margin-top:8px">
+    Esta é uma <strong>interpolação linear</strong> que mapeia o intervalo [wx_min, wx_max]
+    para [vx_min, vx_max]. Equivale à normalização do ponto na janela multiplicada
+    pelo tamanho do viewport.
+    <br>
+    <code>sx = (vx_max - vx_min) / (wx_max - wx_min)</code> é o fator de escala.
+    Se a janela e o viewport tiverem proporções diferentes, haverá distorção.
+  </p>
+</div>
+
+<div class="painel-ctrl">
+  <div style="border-left: 3px solid #ff4757">
+    <h3 style="color:#ff4757">Janela — Espaço do Mundo</h3>
+    <label>wx_min: <input type="number" id="wxMin" value="-10"></label>
+    <label>wx_max: <input type="number" id="wxMax" value="10"></label>
+    <label>wy_min: <input type="number" id="wyMin" value="-8"></label>
+    <label>wy_max: <input type="number" id="wyMax" value="8"></label>
+  </div>
+  <div style="border-left: 3px solid #55efc4">
+    <h3 style="color:#55efc4">Viewport — Espaço da Tela (px)</h3>
+    <label>vx_min: <input type="number" id="vxMin" value="20"></label>
+    <label>vx_max: <input type="number" id="vxMax" value="400"></label>
+    <label>vy_min: <input type="number" id="vyMin" value="20"></label>
+    <label>vy_max: <input type="number" id="vyMax" value="380"></label>
+  </div>
+  <div style="border-left: 3px solid #a29bfe">
+    <h3 style="color:#a29bfe">Configurações</h3>
+    <label><input type="checkbox" id="manterProporcao" checked> Manter proporção</label>
+    <label><input type="checkbox" id="mostrarGrade" checked> Mostrar grade</label>
+    <label><input type="checkbox" id="mostrarObjeto" checked> Mostrar objeto</label>
+    <br>
+    <button onclick="atualizar()">Aplicar</button>
+    <button class="sec" onclick="resetar()" style="margin-top:6px">Resetar</button>
+  </div>
+</div>
+
+<div class="canvases">
+  <div class="canvas-box">
+    <p style="color:#ff4757">Espaço da Janela (mundo)</p>
+    <canvas id="cJanela" width="440" height="400"></canvas>
+  </div>
+  <div class="seta">→</div>
+  <div class="canvas-box">
+    <p style="color:#55efc4">Espaço do Viewport (tela)</p>
+    <canvas id="cViewport" width="440" height="400"></canvas>
+  </div>
+</div>
+
+<div class="estado" id="estado">—</div>
+
+<script>
+/* ===================================================================
+   CONFIGURAÇÃO
+   =================================================================== */
+const cJ  = document.getElementById('cJanela');
+const cV  = document.getElementById('cViewport');
+const ctJ = cJ.getContext('2d');
+const ctV = cV.getContext('2d');
+
+// Objeto de exemplo no espaço do mundo — uma casa simplificada
+const objetoMundo = [
+  // Base da casa
+  { tipo: 'poligono', pontos: [[-4,-3],[4,-3],[4,1],[-4,1]], cor: '#55efc4' },
+  // Telhado
+  { tipo: 'poligono', pontos: [[-4,1],[0,5],[4,1]], cor: '#fd79a8' },
+  // Porta
+  { tipo: 'poligono', pontos: [[-1,-3],[1,-3],[1,0],[-1,0]], cor: '#74b9ff' },
+  // Janela
+  { tipo: 'poligono', pontos: [[2,-1],[4,-1],[4,0],[2,0]], cor: '#ffd700' },
+  // Ponto de exemplo para mostrar mapeamento
+  { tipo: 'ponto', x: -6, y: 4, cor: '#ff4757', label: 'P(-6,4)' },
+  { tipo: 'ponto', x:  6, y: -5, cor: '#ff4757', label: 'Q(6,-5)' },
+];
+
+/* ===================================================================
+   FUNÇÃO PRINCIPAL DE TRANSFORMAÇÃO JANELA → VIEWPORT
+   ===================================================================
+   Esta função implementa diretamente a fórmula matemática.
+   =================================================================== */
+function janelaParaViewport(xw, yw, j, v) {
+  // j = { xMin, xMax, yMin, yMax } — janela
+  // v = { xMin, xMax, yMin, yMax } — viewport
+  //
+  // Fatores de escala:
+  const sx = (v.xMax - v.xMin) / (j.xMax - j.xMin);
+  const sy = (v.yMax - v.yMin) / (j.yMax - j.yMin);
+  //
+  // Aplicação da fórmula:
+  const xv = v.xMin + (xw - j.xMin) * sx;
+  //
+  // ATENÇÃO: em canvas, Y cresce para baixo, mas no mundo Y cresce para cima.
+  // Por isso invertemos com (j.yMax - yw) em vez de (yw - j.yMin):
+  const yv = v.yMin + (j.yMax - yw) * sy;
+  //
+  return { x: xv, y: yv };
+}
+
+/* ===================================================================
+   RENDERIZAÇÃO
+   =================================================================== */
+
+/** Desenha a cena no canvas da JANELA (espaço do mundo) */
+function renderJanela(j) {
+  const W = cJ.width, H = cJ.height;
+  ctJ.clearRect(0, 0, W, H);
+  ctJ.fillStyle = '#0a0a14';
+  ctJ.fillRect(0, 0, W, H);
+
+  // Função auxiliar: converte coord do mundo → pixels do canvas da janela
+  // (apenas para exibição — esta é a visualização do espaço mundo, com escala fixa)
+  const escX = W / (j.xMax - j.xMin);
+  const escY = H / (j.yMax - j.yMin);
+  function toCanvas(xw, yw) {
+    return {
+      x: (xw - j.xMin) * escX,
+      y: (j.yMax - yw) * escY
+    };
+  }
+
+  // Grade do mundo
+  if (document.getElementById('mostrarGrade').checked) {
+    ctJ.strokeStyle = '#ffffff12'; ctJ.lineWidth = 0.5;
+    for (let x = Math.ceil(j.xMin); x <= j.xMax; x++) {
+      const a = toCanvas(x, j.yMin), b = toCanvas(x, j.yMax);
+      ctJ.beginPath(); ctJ.moveTo(a.x, a.y); ctJ.lineTo(b.x, b.y); ctJ.stroke();
+    }
+    for (let y = Math.ceil(j.yMin); y <= j.yMax; y++) {
+      const a = toCanvas(j.xMin, y), b = toCanvas(j.xMax, y);
+      ctJ.beginPath(); ctJ.moveTo(a.x, a.y); ctJ.lineTo(b.x, b.y); ctJ.stroke();
+    }
+    // Eixos
+    ctJ.strokeStyle = '#ff475788'; ctJ.lineWidth = 1;
+    const ox1 = toCanvas(j.xMin, 0), ox2 = toCanvas(j.xMax, 0);
+    ctJ.beginPath(); ctJ.moveTo(ox1.x, ox1.y); ctJ.lineTo(ox2.x, ox2.y); ctJ.stroke();
+    ctJ.strokeStyle = '#74b9ff88';
+    const oy1 = toCanvas(0, j.yMin), oy2 = toCanvas(0, j.yMax);
+    ctJ.beginPath(); ctJ.moveTo(oy1.x, oy1.y); ctJ.lineTo(oy2.x, oy2.y); ctJ.stroke();
+  }
+
+  // Objeto
+  if (document.getElementById('mostrarObjeto').checked) {
+    objetoMundo.forEach(o => {
+      if (o.tipo === 'poligono') {
+        ctJ.fillStyle = o.cor + '55';
+        ctJ.strokeStyle = o.cor;
+        ctJ.lineWidth = 1.5;
+        ctJ.beginPath();
+        o.pontos.forEach((p, i) => {
+          const c = toCanvas(p[0], p[1]);
+          if (i === 0) ctJ.moveTo(c.x, c.y); else ctJ.lineTo(c.x, c.y);
+        });
+        ctJ.closePath(); ctJ.fill(); ctJ.stroke();
+      }
+      if (o.tipo === 'ponto') {
+        const c = toCanvas(o.x, o.y);
+        ctJ.fillStyle = o.cor;
+        ctJ.beginPath(); ctJ.arc(c.x, c.y, 4, 0, Math.PI*2); ctJ.fill();
+        ctJ.fillStyle = '#fff'; ctJ.font = '10px monospace';
+        ctJ.fillText(o.label, c.x + 6, c.y - 4);
+      }
+    });
+  }
+
+  // Borda da janela
+  ctJ.strokeStyle = '#ff4757'; ctJ.lineWidth = 2;
+  ctJ.strokeRect(1, 1, W-2, H-2);
+  ctJ.fillStyle = '#ff475766';
+  ctJ.fillRect(0, 0, W, 18);
+  ctJ.fillStyle = '#fff'; ctJ.font = 'bold 10px monospace';
+  ctJ.fillText(`Janela: [${j.xMin},${j.xMax}] × [${j.yMin},${j.yMax}]`, 4, 12);
+}
+
+/** Desenha a cena no canvas do VIEWPORT (espaço de tela) */
+function renderViewport(j, v) {
+  const W = cV.width, H = cV.height;
+  ctV.clearRect(0, 0, W, H);
+  ctV.fillStyle = '#0a0a14';
+  ctV.fillRect(0, 0, W, H);
+
+  // Grade do viewport
+  if (document.getElementById('mostrarGrade').checked) {
+    ctV.strokeStyle = '#ffffff10'; ctV.lineWidth = 0.5;
+    for (let x = 0; x <= W; x += 40) {
+      ctV.beginPath(); ctV.moveTo(x, 0); ctV.lineTo(x, H); ctV.stroke();
+    }
+    for (let y = 0; y <= H; y += 40) {
+      ctV.beginPath(); ctV.moveTo(0, y); ctV.lineTo(W, y); ctV.stroke();
+    }
+  }
+
+  // Área do viewport destacada
+  ctV.fillStyle = '#55efc408';
+  ctV.fillRect(v.xMin, v.yMin, v.xMax - v.xMin, v.yMax - v.yMin);
+  ctV.strokeStyle = '#55efc4'; ctV.lineWidth = 1.5; ctV.setLineDash([4,3]);
+  ctV.strokeRect(v.xMin, v.yMin, v.xMax - v.xMin, v.yMax - v.yMin);
+  ctV.setLineDash([]);
+
+  // Objeto mapeado
+  if (document.getElementById('mostrarObjeto').checked) {
+    objetoMundo.forEach(o => {
+      if (o.tipo === 'poligono') {
+        ctV.fillStyle = o.cor + '55';
+        ctV.strokeStyle = o.cor;
+        ctV.lineWidth = 1.5;
+        ctV.beginPath();
+        o.pontos.forEach((p, i) => {
+          const c = janelaParaViewport(p[0], p[1], j, v);
+          if (i === 0) ctV.moveTo(c.x, c.y); else ctV.lineTo(c.x, c.y);
+        });
+        ctV.closePath(); ctV.fill(); ctV.stroke();
+      }
+      if (o.tipo === 'ponto') {
+        const c = janelaParaViewport(o.x, o.y, j, v);
+        ctV.fillStyle = o.cor;
+        ctV.beginPath(); ctV.arc(c.x, c.y, 4, 0, Math.PI*2); ctV.fill();
+        ctV.fillStyle = '#fff'; ctV.font = '10px monospace';
+        ctV.fillText(`(${Math.round(c.x)},${Math.round(c.y)})`, c.x + 6, c.y - 4);
+      }
+    });
+  }
+
+  ctV.strokeStyle = '#55efc4'; ctV.lineWidth = 2;
+  ctV.strokeRect(1, 1, W-2, H-2);
+  ctV.fillStyle = '#55efc466';
+  ctV.fillRect(0, 0, W, 18);
+  ctV.fillStyle = '#000'; ctV.font = 'bold 10px monospace';
+  ctV.fillText(`Viewport: [${v.xMin},${v.xMax}] × [${v.yMin},${v.yMax}] px`, 4, 12);
+}
+
+/* ===================================================================
+   ATUALIZAR — lê os inputs e re-renderiza
+   =================================================================== */
+function atualizar() {
+  const j = {
+    xMin: parseFloat(document.getElementById('wxMin').value),
+    xMax: parseFloat(document.getElementById('wxMax').value),
+    yMin: parseFloat(document.getElementById('wyMin').value),
+    yMax: parseFloat(document.getElementById('wyMax').value),
+  };
+  let v = {
+    xMin: parseFloat(document.getElementById('vxMin').value),
+    xMax: parseFloat(document.getElementById('vxMax').value),
+    yMin: parseFloat(document.getElementById('vyMin').value),
+    yMax: parseFloat(document.getElementById('vyMax').value),
+  };
+
+  // Manter proporção: ajusta viewport para mesma razão da janela
+  if (document.getElementById('manterProporcao').checked) {
+    const razaoJanela = (j.xMax - j.xMin) / (j.yMax - j.yMin);
+    const largViewport = v.xMax - v.xMin;
+    const novaAlt = largViewport / razaoJanela;
+    v.yMax = v.yMin + novaAlt;
+    document.getElementById('vyMax').value = Math.round(v.yMax);
+  }
+
+  const sx = ((v.xMax - v.xMin) / (j.xMax - j.xMin)).toFixed(3);
+  const sy = ((v.yMax - v.yMin) / (j.yMax - j.yMin)).toFixed(3);
+
+  renderJanela(j);
+  renderViewport(j, v);
+
+  // Exemplo: calcula mapeamento do ponto P1(-6, 4)
+  const pt = janelaParaViewport(-6, 4, j, v);
+
+  document.getElementById('estado').innerHTML =
+    `sx = (${v.xMax-v.xMin}) / (${j.xMax-j.xMin}) = ${sx} &nbsp;|&nbsp; ` +
+    `sy = (${Math.round(v.yMax-v.yMin)}) / (${j.yMax-j.yMin}) = ${sy}<br>` +
+    `Exemplo: P_mundo(-6, 4) → P_viewport(${Math.round(pt.x)}, ${Math.round(pt.y)}) px`;
+}
+
+function resetar() {
+  document.getElementById('wxMin').value = -10;
+  document.getElementById('wxMax').value =  10;
+  document.getElementById('wyMin').value =  -8;
+  document.getElementById('wyMax').value =   8;
+  document.getElementById('vxMin').value =  20;
+  document.getElementById('vxMax').value = 400;
+  document.getElementById('vyMin').value =  20;
+  document.getElementById('vyMax').value = 380;
+  atualizar();
+}
+
+// Atualiza ao mudar qualquer input
+document.querySelectorAll('input').forEach(el => {
+  el.addEventListener('change', atualizar);
+});
+
+atualizar();
+</script>
+</body>
+</html>

@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Algoritmo DDA — Rasterização de Retas</title>
+  <style>
+    /* =====================================================================
+       ESTILO GERAL DA PÁGINA
+       ===================================================================== */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      gap: 16px;
+    }
+    h1 { color: #00d4ff; font-size: 1.6rem; text-align: center; }
+    .subtitle { color: #aaa; font-size: 0.9rem; text-align: center; }
+
+    /* Painel de teoria */
+    .teoria {
+      background: #16213e;
+      border-left: 4px solid #00d4ff;
+      padding: 16px 20px;
+      max-width: 860px;
+      width: 100%;
+      border-radius: 4px;
+      font-size: 0.88rem;
+      line-height: 1.7;
+    }
+    .teoria h2 { color: #00d4ff; margin-bottom: 8px; font-size: 1rem; }
+    .teoria code {
+      background: #0f3460;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: monospace;
+      color: #f0c040;
+    }
+
+    /* Controles */
+    .controles {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      max-width: 860px;
+      width: 100%;
+      background: #16213e;
+      padding: 12px 16px;
+      border-radius: 6px;
+    }
+    .controles label { font-size: 0.85rem; color: #aaa; }
+    .controles input[type="number"] {
+      width: 60px;
+      padding: 4px 6px;
+      background: #0f3460;
+      border: 1px solid #00d4ff44;
+      color: #fff;
+      border-radius: 4px;
+      text-align: center;
+    }
+    button {
+      padding: 6px 14px;
+      background: #00d4ff;
+      color: #000;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 0.85rem;
+    }
+    button:hover { background: #00b8d9; }
+    button.danger { background: #ff4757; color: #fff; }
+
+    /* Canvas */
+    canvas {
+      border: 2px solid #00d4ff44;
+      cursor: crosshair;
+      border-radius: 4px;
+      background: #0a0a1a;
+    }
+
+    /* Log de passos do algoritmo */
+    .log {
+      max-width: 860px;
+      width: 100%;
+      background: #0f3460;
+      padding: 12px 16px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 0.8rem;
+      max-height: 150px;
+      overflow-y: auto;
+      color: #7effd4;
+    }
+    .log span { display: block; border-bottom: 1px solid #ffffff11; padding: 1px 0; }
+  </style>
+</head>
+<body>
+
+<!-- =====================================================================
+  AULA: ALGORITMO DDA (Digital Differential Analyzer)
+  =====================================================================
+  OBJETIVO:
+    Entender como converter uma reta matemática (contínua) em pixels
+    discretos numa grade de pixels — processo chamado RASTERIZAÇÃO.
+
+  CONCEITO MATEMÁTICO:
+    Uma reta entre P1=(x1,y1) e P2=(x2,y2) pode ser descrita por:
+      y = y1 + m * (x - x1)   onde  m = (y2-y1)/(x2-x1)
+
+    O DDA avança passo a passo ao longo do eixo com maior variação:
+      - Se |dx| >= |dy|: incrementa x de 1, calcula y = y + m
+      - Se |dy|  > |dx|: incrementa y de 1, calcula x = x + 1/m
+
+    Em cada passo, arredonda-se para o pixel mais próximo.
+
+  VANTAGEM: simples de entender e implementar.
+  DESVANTAGEM: usa ponto flutuante → mais lento que Bresenham.
+  ===================================================================== -->
+
+<h1>Algoritmo DDA — Rasterização de Retas</h1>
+<p class="subtitle">Clique no canvas para definir os pontos, ou use os inputs abaixo</p>
+
+<!-- SEÇÃO: TEORIA ===================================================== -->
+<div class="teoria">
+  <h2>Como funciona o DDA?</h2>
+  <p>
+    O <strong>DDA (Digital Differential Analyzer)</strong> traça uma reta calculando
+    incrementos em x e y a cada passo. A ideia central é:
+  </p>
+  <p style="margin-top:8px">
+    <code>steps = max(|dx|, |dy|)</code><br>
+    <code>xIncremento = dx / steps</code><br>
+    <code>yIncremento = dy / steps</code>
+  </p>
+  <p style="margin-top:8px">
+    Em cada um dos <em>steps</em> iterações, somamos os incrementos em x e y,
+    e arredondamos para pintar o pixel inteiro mais próximo.
+    O resultado é uma aproximação discreta da reta matemática contínua.
+  </p>
+</div>
+
+<!-- SEÇÃO: INTERFACE — controles de entrada ========================== -->
+<div class="controles">
+  <label>P1 x:</label>
+  <input type="number" id="x1" value="50">
+  <label>y:</label>
+  <input type="number" id="y1" value="50">
+
+  <label style="margin-left:12px">P2 x:</label>
+  <input type="number" id="x2" value="350">
+  <label>y:</label>
+  <input type="number" id="y2" value="200">
+
+  <button onclick="desenharDDA()">Desenhar DDA</button>
+  <button class="danger" onclick="limpar()">Limpar</button>
+  <span style="color:#aaa; font-size:0.8rem; margin-left:8px">
+    Cor do pixel: <input type="color" id="corPixel" value="#00ff88" style="width:36px; vertical-align:middle; border:none; cursor:pointer">
+  </span>
+</div>
+
+<!-- CANVAS onde os pixels serão desenhados =========================== -->
+<canvas id="canvas" width="860" height="400"></canvas>
+
+<!-- LOG dos passos do algoritmo  ===================================== -->
+<div class="log" id="log">
+  <span style="color:#aaa">— Log dos passos do algoritmo aparecerá aqui —</span>
+</div>
+
+<script>
+/* =====================================================================
+   SEÇÃO: CONFIGURAÇÃO DO CANVAS
+   ===================================================================== */
+
+const canvas = document.getElementById('canvas');
+const ctx    = canvas.getContext('2d');  // contexto 2D para desenhio
+
+// Estado para captura de cliques
+let cliques = [];   // armazena os dois pontos clicados pelo usuário
+
+// Desenhamos a grade de fundo para visualizar o espaço de pixels
+function desenharGrade() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Grade fina a cada 10px
+  ctx.strokeStyle = '#ffffff0a';
+  ctx.lineWidth = 0.5;
+  for (let x = 0; x <= canvas.width; x += 10) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+  }
+  for (let y = 0; y <= canvas.height; y += 10) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+  }
+
+  // Grade grossa a cada 50px
+  ctx.strokeStyle = '#ffffff18';
+  ctx.lineWidth = 1;
+  for (let x = 0; x <= canvas.width; x += 50) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+  }
+  for (let y = 0; y <= canvas.height; y += 50) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+  }
+}
+
+/* =====================================================================
+   SEÇÃO: ALGORITMO DDA
+   ===================================================================== */
+
+/**
+ * desenhaPixel(x, y) — pinta um pixel de tamanho 1x1 na posição (x, y).
+ * fillRect(x, y, largura, altura) com l=h=1 simula o pixel da grade.
+ */
+function desenhaPixel(x, y, cor) {
+  ctx.fillStyle = cor;
+  ctx.fillRect(Math.round(x), Math.round(y), 1, 1);
+}
+
+/**
+ * algoritmoDDA(x1, y1, x2, y2)
+ * Implementação passo a passo do DDA.
+ *
+ * MATEMÁTICA:
+ *   dx = x2 - x1   → variação total em x
+ *   dy = y2 - y1   → variação total em y
+ *   steps = max(|dx|, |dy|)  → número de pixels a plotar
+ *   xInc = dx / steps        → quanto avançamos em x por passo
+ *   yInc = dy / steps        → quanto avançamos em y por passo
+ *
+ * A divisão garante que o eixo dominante avance exatamente 1 pixel/passo,
+ * e o eixo menor avance proporcionalmente (fração entre 0 e 1).
+ */
+function algoritmoDDA(x1, y1, x2, y2) {
+  const log   = document.getElementById('log');
+  const cor   = document.getElementById('corPixel').value;
+  log.innerHTML = '';   // limpa o log anterior
+
+  // Calculamos as diferenças
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+
+  // O número de passos é o maior deslocamento absoluto
+  const steps = Math.max(Math.abs(dx), Math.abs(dy));
+
+  log.innerHTML += `<span>▶ P1=(${x1},${y1})  P2=(${x2},${y2})</span>`;
+  log.innerHTML += `<span>  dx=${dx}  dy=${dy}  steps=${steps}</span>`;
+
+  if (steps === 0) {
+    // Caso especial: os dois pontos são os mesmos
+    desenhaPixel(x1, y1, cor);
+    return;
+  }
+
+  // Incrementos fracionários por passo
+  const xInc = dx / steps;
+  const yInc = dy / steps;
+
+  log.innerHTML += `<span>  xInc=${xInc.toFixed(4)}  yInc=${yInc.toFixed(4)}</span>`;
+
+  // Inicializamos nas coordenadas do ponto inicial
+  let x = x1;
+  let y = y1;
+
+  // LOOP PRINCIPAL — avançamos 'steps' vezes
+  for (let i = 0; i <= steps; i++) {
+    // Pintamos o pixel arredondando para o inteiro mais próximo
+    desenhaPixel(Math.round(x), Math.round(y), cor);
+
+    // Logamos apenas os primeiros 10 passos para não travar a tela
+    if (i < 10) {
+      log.innerHTML += `<span>  passo ${i}: pixel (${Math.round(x)}, ${Math.round(y)})</span>`;
+    } else if (i === 10) {
+      log.innerHTML += `<span>  ... (${steps - 10} passos omitidos) ...</span>`;
+    }
+
+    // Avançamos as coordenadas pelos incrementos fracionários
+    x += xInc;
+    y += yInc;
+  }
+
+  log.innerHTML += `<span style="color:#ffd700">✔ Total de pixels pintados: ${steps + 1}</span>`;
+
+  // Scroll automático para o final do log
+  log.scrollTop = log.scrollHeight;
+}
+
+/* =====================================================================
+   SEÇÃO: INTERFACE — eventos de clique e botão
+   ===================================================================== */
+
+/** Chamada pelo botão "Desenhar DDA" */
+function desenharDDA() {
+  const x1 = parseInt(document.getElementById('x1').value);
+  const y1 = parseInt(document.getElementById('y1').value);
+  const x2 = parseInt(document.getElementById('x2').value);
+  const y2 = parseInt(document.getElementById('y2').value);
+
+  desenharGrade();
+  desenharMarcadores(x1, y1, x2, y2);
+  algoritmoDDA(x1, y1, x2, y2);
+}
+
+/** Marca os pontos P1 e P2 no canvas */
+function desenharMarcadores(x1, y1, x2, y2) {
+  ctx.fillStyle = '#ff4757';
+  ctx.beginPath();
+  ctx.arc(x1, y1, 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#ffd700';
+  ctx.beginPath();
+  ctx.arc(x2, y2, 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#aaa';
+  ctx.font = '11px monospace';
+  ctx.fillText(`P1(${x1},${y1})`, x1 + 6, y1 - 4);
+  ctx.fillText(`P2(${x2},${y2})`, x2 + 6, y2 - 4);
+}
+
+/** Limpa o canvas e reinicia */
+function limpar() {
+  cliques = [];
+  desenharGrade();
+  document.getElementById('log').innerHTML = '<span style="color:#aaa">— Log limpo —</span>';
+}
+
+/**
+ * Captura cliques no canvas para definir P1 e P2 interativamente.
+ * Primeiro clique → P1, segundo clique → P2 e executa o DDA.
+ */
+canvas.addEventListener('click', function(e) {
+  // getBoundingClientRect ajusta para a posição real do canvas na tela
+  const rect = canvas.getBoundingClientRect();
+  const cx = Math.round(e.clientX - rect.left);
+  const cy = Math.round(e.clientY - rect.top);
+
+  cliques.push({ x: cx, y: cy });
+
+  if (cliques.length === 1) {
+    // Primeiro ponto: apenas marcamos
+    document.getElementById('x1').value = cx;
+    document.getElementById('y1').value = cy;
+    desenharGrade();
+    ctx.fillStyle = '#ff4757';
+    ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#aaa'; ctx.font = '11px monospace';
+    ctx.fillText(`P1(${cx},${cy})`, cx + 6, cy - 4);
+
+  } else if (cliques.length === 2) {
+    // Segundo ponto: executamos o DDA
+    document.getElementById('x2').value = cx;
+    document.getElementById('y2').value = cy;
+    desenharDDA();
+    cliques = [];  // reinicia para o próximo par de cliques
+  }
+});
+
+/* =====================================================================
+   INICIALIZAÇÃO
+   ===================================================================== */
+desenharGrade();
+</script>
+</body>
+</html>

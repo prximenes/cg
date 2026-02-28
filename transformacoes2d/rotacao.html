@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Rotação 2D — Three.js</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #1a1a2e; color: #e0e0e0;
+      display: flex; flex-direction: column; align-items: center; padding: 20px; gap: 16px; }
+    h1 { color: #74b9ff; font-size: 1.6rem; text-align: center; }
+    .subtitle { color: #aaa; font-size: 0.9rem; text-align: center; }
+    .teoria { background: #16213e; border-left: 4px solid #74b9ff; padding: 16px 20px;
+      max-width: 900px; width: 100%; border-radius: 4px; font-size: 0.88rem; line-height: 1.7; }
+    .teoria h2 { color: #74b9ff; margin-bottom: 8px; font-size: 1rem; }
+    .teoria code { background: #0f3460; padding: 2px 6px; border-radius: 3px;
+      font-family: monospace; color: #f0c040; }
+    .matrix { font-family: monospace; background: #0f3460; padding: 10px 16px;
+      border-radius: 4px; display: inline-block; margin: 8px 0; font-size: 0.9rem;
+      color: #f0c040; line-height: 1.8; }
+    .controles { display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+      max-width: 900px; width: 100%; background: #16213e; padding: 12px 16px; border-radius: 6px; }
+    .controles label { font-size: 0.85rem; color: #aaa; }
+    .controles input[type="number"] { width: 65px; padding: 4px 6px; background: #0f3460;
+      border: 1px solid #74b9ff44; color: #fff; border-radius: 4px; text-align: center; }
+    button { padding: 6px 14px; background: #74b9ff; color: #000; border: none;
+      border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.85rem; }
+    button:hover { background: #0984e3; color: #fff; }
+    button.sec { background: #0f3460; color: #fff; border: 1px solid #74b9ff44; }
+    button.sec:hover { background: #1a4a80; }
+    #renderer-container { border: 2px solid #74b9ff44; border-radius: 4px; }
+    .teclado { background: #16213e; border-radius: 6px; padding: 10px 16px; max-width: 900px;
+      width: 100%; font-size: 0.85rem; display: flex; gap: 10px; flex-wrap: wrap; }
+    .tecla { background: #0f3460; border: 1px solid #74b9ff44; border-radius: 4px;
+      padding: 4px 10px; font-family: monospace; color: #74b9ff; font-size: 0.8rem; }
+    .estado { background: #0f3460; border-radius: 6px; padding: 10px 16px; max-width: 900px;
+      width: 100%; font-family: monospace; font-size: 0.82rem; color: #7effd4; line-height: 1.8; }
+  </style>
+</head>
+<body>
+
+<!--
+  AULA: ROTAÇÃO 2D COM THREE.JS
+  =====================================================================
+  OBJETIVO:
+    Demonstrar a transformação de ROTAÇÃO em 2D usando Three.js
+    e entender a matriz de rotação em coordenadas homogêneas.
+
+  TEORIA — MATRIZ DE ROTAÇÃO:
+    A rotação de um ponto (x, y) por ângulo θ ao redor da ORIGEM:
+
+      x' = x·cos(θ) − y·sin(θ)
+      y' = x·sin(θ) + y·cos(θ)
+
+    Na forma matricial (coordenadas homogêneas 3×3):
+
+    | cos(θ)  −sin(θ)  0 |   | x |   | x·cos(θ) − y·sin(θ) |
+    | sin(θ)   cos(θ)  0 | × | y | = | x·sin(θ) + y·cos(θ) |
+    |  0        0      1 |   | 1 |   |           1          |
+
+  ROTAÇÃO AO REDOR DE PONTO ARBITRÁRIO (px, py):
+    1. Transladar (px, py) para a origem:  T(-px, -py)
+    2. Rotacionar:                          R(θ)
+    3. Transladar de volta:                 T(px, py)
+    Composição: T(px,py) · R(θ) · T(-px,-py)
+
+  THREE.JS:
+    mesh.rotation.z = θ  (radianos, Z para rotação 2D no plano XY)
+    Internamente atualiza a matriz de transformação do objeto.
+
+  SENTIDO:
+    Ângulo positivo = sentido anti-horário (padrão matemático).
+    Na tela (Y invertido), pode parecer horário.
+-->
+
+<h1>Rotação 2D — Matriz de Rotação</h1>
+<p class="subtitle">Use as teclas Q/E ou os botões para rotacionar o polígono</p>
+
+<div class="teoria">
+  <h2>Matriz de Rotação R(θ) — coordenadas homogêneas 3×3</h2>
+  <div class="matrix">
+R(θ) = | cos θ  −sin θ  0 |<br>
+       | sin θ   cos θ  0 |<br>
+       |   0       0    1 |
+  </div>
+  <p style="margin-top:8px">
+    A rotação mantem o ponto na mesma distância da origem (preserva distância).
+    Para rotacionar em torno de ponto arbitrário (px, py):
+    <code>T(px,py) · R(θ) · T(−px,−py)</code>
+  </p>
+</div>
+
+<div class="controles">
+  <label>Passo (graus):</label>
+  <input type="number" id="passo" value="15" min="1" max="180">
+  <label style="margin-left:8px">Piv. X:</label>
+  <input type="number" id="pivX" value="0">
+  <label>Y:</label>
+  <input type="number" id="pivY" value="0">
+  <button onclick="girar(1)">⟳ +θ</button>
+  <button onclick="girar(-1)">⟲ −θ</button>
+  <button class="sec" onclick="animar()">Animar rotação</button>
+  <button class="sec" onclick="pararAnim()">Parar</button>
+  <button class="sec" onclick="reset()">Resetar</button>
+</div>
+
+<div class="teclado">
+  <strong style="color:#aaa">Teclado:</strong>
+  <span class="tecla">Q</span> Girar ← &nbsp;
+  <span class="tecla">E</span> Girar → &nbsp;
+  <span class="tecla">R</span> Resetar
+</div>
+
+<div id="renderer-container"></div>
+
+<div class="estado" id="estado">angle: 0° | rotation.z: 0 rad</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ===================================================================
+   CONFIGURAÇÃO
+   =================================================================== */
+const W = 900, H = 440;
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(W, H);
+renderer.setClearColor(0x0a0a1a);
+document.getElementById('renderer-container').appendChild(renderer.domElement);
+
+const camera = new THREE.OrthographicCamera(-W/2, W/2, H/2, -H/2, -1000, 1000);
+camera.position.z = 1;
+
+const scene = new THREE.Scene();
+
+/* ===================================================================
+   GRADE E EIXOS
+   =================================================================== */
+function adicionarEixos() {
+  const matGrade = new THREE.LineBasicMaterial({ color: 0xffffff08 });
+  for (let x = -W/2; x <= W/2; x += 50) {
+    const g = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(x, -H/2, 0), new THREE.Vector3(x, H/2, 0)
+    ]);
+    scene.add(new THREE.Line(g, matGrade));
+  }
+  for (let y = -H/2; y <= H/2; y += 50) {
+    const g = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(-W/2, y, 0), new THREE.Vector3(W/2, y, 0)
+    ]);
+    scene.add(new THREE.Line(g, matGrade));
+  }
+  const geoX = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(-W/2,0,0), new THREE.Vector3(W/2,0,0)
+  ]);
+  const geoY = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(0,-H/2,0), new THREE.Vector3(0,H/2,0)
+  ]);
+  scene.add(new THREE.Line(geoX, new THREE.LineBasicMaterial({ color: 0xff4757 })));
+  scene.add(new THREE.Line(geoY, new THREE.LineBasicMaterial({ color: 0x74b9ff })));
+}
+adicionarEixos();
+
+/* ===================================================================
+   POLÍGONO (triângulo equilátero com marcador de orientação)
+   =================================================================== */
+const forma = new THREE.Shape();
+const n = 3, raio = 90;
+for (let i = 0; i <= n; i++) {
+  const ang = (i / n) * Math.PI * 2 - Math.PI / 2;
+  const vx = Math.cos(ang) * raio;
+  const vy = Math.sin(ang) * raio;
+  if (i === 0) forma.moveTo(vx, vy);
+  else         forma.lineTo(vx, vy);
+}
+
+const geo = new THREE.ShapeGeometry(forma);
+const mat = new THREE.MeshBasicMaterial({ color: 0x74b9ff, transparent: true, opacity: 0.8 });
+const poligono = new THREE.Mesh(geo, mat);
+
+// Aresta de destaque na ponta superior (indicador de orientação)
+const edgeMat = new THREE.LineBasicMaterial({ color: 0xffffff });
+const edgeGeo = new THREE.EdgesGeometry(geo);
+poligono.add(new THREE.LineSegments(edgeGeo, edgeMat));
+
+// Marcador de direção — seta na ponta do vértice superior
+const marcGeo = new THREE.BufferGeometry().setFromPoints([
+  new THREE.Vector3(0, raio, 0),
+  new THREE.Vector3(0, raio + 18, 0),
+]);
+poligono.add(new THREE.Line(marcGeo, new THREE.LineBasicMaterial({ color: 0xffd700, linewidth: 2 })));
+
+scene.add(poligono);
+
+// Marcador do ponto de pivô
+const pivSprite = new THREE.Mesh(
+  new THREE.CircleGeometry(5, 16),
+  new THREE.MeshBasicMaterial({ color: 0xff4757 })
+);
+scene.add(pivSprite);
+
+/* ===================================================================
+   LÓGICA DE ROTAÇÃO
+   =================================================================== */
+let anguloTotal = 0;   // em graus
+let animId      = null;
+
+/**
+ * girar(sentido) — aplica rotação ao polígono.
+ *
+ * Rotação ao redor de pivô arbitrário (px, py):
+ *   1. Translada para a origem
+ *   2. Aplica rotação
+ *   3. Translada de volta
+ *
+ * Three.js faz isso através de:
+ *   - position define o centro do objeto
+ *   - rotation.z aplica a rotação
+ * Para pivô diferente da origem, calculamos manualmente.
+ */
+function girar(sentido) {
+  const graus    = parseFloat(document.getElementById('passo').value) || 15;
+  const rad      = graus * Math.PI / 180;
+  const px       = parseFloat(document.getElementById('pivX').value) || 0;
+  const py       = parseFloat(document.getElementById('pivY').value) || 0;
+
+  const delta = sentido * rad;
+  anguloTotal += sentido * graus;
+
+  if (px === 0 && py === 0) {
+    // Rotação ao redor da ORIGEM — simples
+    poligono.rotation.z += delta;
+
+  } else {
+    // Rotação ao redor de ponto arbitrário
+    // 1. Posição atual do polígono em relação ao pivô
+    const dx = poligono.position.x - px;
+    const dy = poligono.position.y - py;
+
+    // 2. Aplica rotação à posição
+    const cosA = Math.cos(delta), sinA = Math.sin(delta);
+    poligono.position.x = px + dx * cosA - dy * sinA;
+    poligono.position.y = py + dx * sinA + dy * cosA;
+
+    // 3. Rotaciona o objeto
+    poligono.rotation.z += delta;
+
+    // Atualiza marcador do pivô
+    pivSprite.position.set(px, py, 0);
+  }
+
+  atualizarEstado();
+  renderizar();
+}
+
+function animar() {
+  pararAnim();
+  const step = 0.5 * Math.PI / 180;  // 0.5° por frame
+  function frame() {
+    poligono.rotation.z += step;
+    anguloTotal += 0.5;
+    atualizarEstado();
+    renderizar();
+    animId = requestAnimationFrame(frame);
+  }
+  frame();
+}
+
+function pararAnim() {
+  if (animId) { cancelAnimationFrame(animId); animId = null; }
+}
+
+function reset() {
+  pararAnim();
+  poligono.rotation.z = 0;
+  poligono.position.set(0, 0, 0);
+  anguloTotal = 0;
+  pivSprite.position.set(0, 0, 0);
+  atualizarEstado();
+  renderizar();
+}
+
+function atualizarEstado() {
+  const ang   = poligono.rotation.z;
+  const graus = (anguloTotal % 360).toFixed(1);
+  const cos_a = Math.cos(ang).toFixed(4);
+  const sin_a = Math.sin(ang).toFixed(4);
+  document.getElementById('estado').innerHTML =
+    `angle: ${graus}° | rotation.z: ${ang.toFixed(4)} rad<br>` +
+    `<span style="color:#aaa">R(θ) = | ${cos_a}  −${Math.abs(parseFloat(sin_a)).toFixed(4)}  0 |</span><br>` +
+    `<span style="color:#aaa">       | ${sin_a}   ${cos_a}  0 |</span>`;
+}
+
+/* ===================================================================
+   TECLADO
+   =================================================================== */
+document.addEventListener('keydown', function(e) {
+  switch(e.key.toLowerCase()) {
+    case 'q': girar(-1); break;
+    case 'e': girar(1);  break;
+    case 'r': reset();   break;
+  }
+});
+
+/* ===================================================================
+   RENDERIZAÇÃO
+   =================================================================== */
+function renderizar() { renderer.render(scene, camera); }
+renderizar();
+atualizarEstado();
+</script>
+</body>
+</html>

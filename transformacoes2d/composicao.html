@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Composição de Transformações 2D — Three.js</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #1a1a2e; color: #e0e0e0;
+      display: flex; flex-direction: column; align-items: center; padding: 20px; gap: 16px; }
+    h1 { color: #e17055; font-size: 1.5rem; text-align: center; }
+    .subtitle { color: #aaa; font-size: 0.9rem; text-align: center; }
+    .teoria { background: #16213e; border-left: 4px solid #e17055; padding: 16px 20px;
+      max-width: 960px; width: 100%; border-radius: 4px; font-size: 0.88rem; line-height: 1.7; }
+    .teoria h2 { color: #e17055; margin-bottom: 8px; font-size: 1rem; }
+    .teoria code { background: #0f3460; padding: 2px 6px; border-radius: 3px;
+      font-family: monospace; color: #f0c040; }
+    .matrix { font-family: monospace; background: #0f3460; padding: 8px 14px;
+      border-radius: 4px; display: inline-block; margin: 6px 0; font-size: 0.88rem;
+      color: #f0c040; line-height: 1.8; }
+    .painel { display: flex; gap: 12px; max-width: 960px; width: 100%; flex-wrap: wrap; }
+    .painel > div { background: #16213e; border-radius: 6px; padding: 12px 14px; flex: 1; min-width: 200px; }
+    .painel h3 { font-size: 0.9rem; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid #ffffff11; }
+    .painel label { font-size: 0.82rem; color: #aaa; display: block; margin: 4px 0 2px; }
+    .painel input[type="range"] { width: 100%; accent-color: #e17055; }
+    .painel .val { color: #e17055; font-family: monospace; font-size: 0.82rem; }
+    button { padding: 5px 12px; background: #e17055; color: #fff; border: none;
+      border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.82rem; }
+    button:hover { background: #d63031; }
+    button.sec { background: #0f3460; border: 1px solid #e1705544; }
+    button.sec:hover { background: #1a4a80; }
+    #renderer-container { border: 2px solid #e1705544; border-radius: 4px; }
+    .estado { background: #0f3460; border-radius: 6px; padding: 10px 16px; max-width: 960px;
+      width: 100%; font-family: monospace; font-size: 0.8rem; color: #7effd4; line-height: 1.7; }
+    .legenda { display: flex; gap: 12px; flex-wrap: wrap; font-size: 0.82rem; }
+    .legenda span { padding: 3px 10px; border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<!--
+  AULA: COMPOSIÇÃO DE TRANSFORMAÇÕES 2D — HIERARQUIA COM THREE.GROUP
+  =====================================================================
+  OBJETIVO:
+    Demonstrar como compor transformações (T, R, S) em sequência,
+    e como a hierarquia de grupos no Three.js implementa isso
+    naturalmente através da multiplicação de matrizes.
+
+  TEORIA — COMPOSIÇÃO DE MATRIZES:
+    Aplicar T depois R depois S é o produto:
+      M = T · R · S
+    (leitura da direita para esquerda: primeiro S, depois R, depois T)
+
+    ATENÇÃO: a ordem importa! T·R ≠ R·T em geral.
+
+  HIERARQUIA COM THREE.GROUP:
+    Grupos permitem criar hierarquias de transformação:
+
+    grupoSistema                  → transformação do "sistema solar"
+    └── sol (mesh)                → transformação local do sol
+        └── grupoOrbita           → orbita da terra
+            └── terra (mesh)      → posição na orbita
+                └── grupoProprio  → rotação própria da terra
+                    └── lua (mesh)→ orbita da lua ao redor da terra
+
+    A transformação final de um filho = produto das matrizes de todos
+    os ancestrais × matriz local do filho.
+
+  EXEMPLO PRÁTICO:
+    Sistema Solar simplificado:
+    - Sol: rotação própria
+    - Terra: orbita o Sol + rotação própria
+    - Lua: orbita a Terra (herda transformações da Terra!)
+-->
+
+<h1>Composição de Transformações — Hierarquia THREE.Group</h1>
+<p class="subtitle">Sistema solar: cada nível herda as transformações do pai</p>
+
+<div class="teoria">
+  <h2>Composição de matrizes — ordem importa!</h2>
+  <p>
+    Aplicar escala, depois rotação, depois translação:
+  </p>
+  <div class="matrix">M = T · R · S  (aplicação da direita para esquerda)</div>
+  <p style="margin-top:8px">
+    Com hierarquia de grupos, a transformação acumulada de um nó filho é:
+    <code>M_mundo = M_pai · M_avô · ... · M_local</code>
+  </p>
+  <p style="margin-top:8px">
+    No Three.js, <code>THREE.Group</code> é um objeto vazio que serve como
+    nó de transformação — seus filhos herdam sua posição, rotação e escala.
+  </p>
+</div>
+
+<div class="painel">
+  <div style="border-left: 3px solid #ffd700">
+    <h3 style="color:#ffd700">☀ Sol</h3>
+    <label>Rotação própria (velocidade)</label>
+    <input type="range" id="velSol" min="0" max="5" step="0.1" value="1">
+    <span class="val" id="vSol">1.0</span>
+    <label>Escala:</label>
+    <input type="range" id="escSol" min="0.3" max="2" step="0.05" value="1">
+    <span class="val" id="eSol">1.0</span>
+  </div>
+  <div style="border-left: 3px solid #74b9ff">
+    <h3 style="color:#74b9ff">🌍 Terra</h3>
+    <label>Velocidade orbital</label>
+    <input type="range" id="velTerra" min="0" max="5" step="0.1" value="2">
+    <span class="val" id="vTerra">2.0</span>
+    <label>Raio orbital:</label>
+    <input type="range" id="orbTerra" min="80" max="250" step="5" value="160">
+    <span class="val" id="oTerra">160</span>
+  </div>
+  <div style="border-left: 3px solid #aaa">
+    <h3 style="color:#aaa">🌕 Lua</h3>
+    <label>Velocidade orbital</label>
+    <input type="range" id="velLua" min="0" max="10" step="0.2" value="5">
+    <span class="val" id="vLua">5.0</span>
+    <label>Raio orbital:</label>
+    <input type="range" id="orbLua" min="30" max="100" step="5" value="55">
+    <span class="val" id="oLua">55</span>
+  </div>
+  <div style="border-left: 3px solid #e17055">
+    <h3 style="color:#e17055">Controles</h3>
+    <button onclick="toggleAnim()">▶ / Pausar</button>
+    <button class="sec" onclick="resetar()" style="margin-top:8px">Resetar</button>
+    <br><br>
+    <label><input type="checkbox" id="mostrarOrbitas" checked> Mostrar órbitas</label>
+    <br>
+    <label><input type="checkbox" id="mostrarEixos" checked> Mostrar eixos</label>
+  </div>
+</div>
+
+<div id="renderer-container"></div>
+
+<div class="legenda">
+  <span style="background:#ffd70033;color:#ffd700">☀ Sol — nó raiz</span>
+  <span style="background:#74b9ff33;color:#74b9ff">🌍 Terra — filho do Sol</span>
+  <span style="background:#ffffff22;color:#ccc">🌕 Lua — filho da Terra</span>
+</div>
+
+<div class="estado" id="estado">Carregando...</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ===================================================================
+   CONFIGURAÇÃO
+   =================================================================== */
+const W = 960, H = 440;
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(W, H);
+renderer.setClearColor(0x020208);
+document.getElementById('renderer-container').appendChild(renderer.domElement);
+
+const camera = new THREE.OrthographicCamera(-W/2, W/2, H/2, -H/2, -1000, 1000);
+camera.position.z = 1;
+const scene = new THREE.Scene();
+
+/* ===================================================================
+   HIERARQUIA DE GRUPOS
+   ===================================================================
+   A estrutura de grupos abaixo é o coração desta aula:
+
+   scene
+   └── grupoSol               (controla rotação própria do sol)
+       ├── solMesh             (geometria visual do sol)
+       └── grupOrbTerra       (controla posição orbital da terra)
+           └── grupoTerra     (controla rotação própria da terra)
+               ├── terraMesh  (geometria visual da terra)
+               └── grupOrbLua (controla posição orbital da lua)
+                   └── luaMesh (geometria visual da lua)
+
+   Consequência: quando grupoSol gira, TODA a hierarquia gira junto.
+   Quando grupOrbTerra gira (em torno do centro do Sol), a Terra orbita.
+   Quando grupoTerra gira, apenas a Terra e seus filhos (Lua) giram.
+   =================================================================== */
+
+// Grupo raiz: representa o Sol e tudo que orbita ele
+const grupoSol = new THREE.Group();
+scene.add(grupoSol);
+
+// SOL — estrela central
+const solGeo = new THREE.CircleGeometry(40, 32);
+const solMat = new THREE.MeshBasicMaterial({ color: 0xffd700 });
+const solMesh = new THREE.Mesh(solGeo, solMat);
+// Marcador de rotação no sol (linha radial)
+const marcSol = new THREE.Line(
+  new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 40, 0)
+  ]),
+  new THREE.LineBasicMaterial({ color: 0xff4757 })
+);
+solMesh.add(marcSol);
+grupoSol.add(solMesh);
+
+// GRUPO DE ÓRBITA DA TERRA — quando este grupo gira, a Terra orbita o Sol
+const grupOrbTerra = new THREE.Group();
+grupoSol.add(grupOrbTerra);  // filho do grupo do Sol
+
+// GRUPO DA TERRA — controla rotação própria
+const grupoTerra = new THREE.Group();
+grupoTerra.position.x = 160;  // distância inicial do Sol
+grupOrbTerra.add(grupoTerra); // filho do grupo de órbita do Sol
+
+// TERRA
+const terraGeo = new THREE.CircleGeometry(18, 32);
+const terraMat = new THREE.MeshBasicMaterial({ color: 0x74b9ff });
+const terraMesh = new THREE.Mesh(terraGeo, terraMat);
+const marcTerra = new THREE.Line(
+  new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(0,0,0), new THREE.Vector3(0,18,0)
+  ]),
+  new THREE.LineBasicMaterial({ color: 0xffd700 })
+);
+terraMesh.add(marcTerra);
+grupoTerra.add(terraMesh);
+
+// GRUPO DE ÓRBITA DA LUA — filho da Terra
+const grupOrbLua = new THREE.Group();
+grupoTerra.add(grupOrbLua);  // filho do grupo da Terra
+
+// LUA
+const luaGeo  = new THREE.CircleGeometry(8, 32);
+const luaMat  = new THREE.MeshBasicMaterial({ color: 0xaaaaaa });
+const luaMesh = new THREE.Mesh(luaGeo, luaMat);
+luaMesh.position.x = 55;   // distância da Terra
+grupOrbLua.add(luaMesh);   // filho do grupo orbital da lua
+
+/* ===================================================================
+   ÓRBITAS VISUAIS (círculos de referência)
+   =================================================================== */
+function criarCirculo(raio, cor) {
+  const pts = [];
+  for (let i = 0; i <= 128; i++) {
+    const ang = (i / 128) * Math.PI * 2;
+    pts.push(new THREE.Vector3(Math.cos(ang) * raio, Math.sin(ang) * raio, 0));
+  }
+  return new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints(pts),
+    new THREE.LineBasicMaterial({ color: cor, transparent: true, opacity: 0.3 })
+  );
+}
+
+// Órbita da Terra (filho do Sol — orbita em torno do Sol)
+const orbitaTerra = criarCirculo(160, 0x74b9ff);
+grupoSol.add(orbitaTerra);   // filho do Sol → move junto quando Sol translada
+
+// Órbita da Lua (filho da Terra — orbita em torno da Terra)
+const orbitaLua = criarCirculo(55, 0xaaaaaa);
+grupoTerra.add(orbitaLua);   // filho da Terra → sempre ao redor da Terra
+
+/* ===================================================================
+   ANIMAÇÃO
+   =================================================================== */
+let animando = true;
+let angSol = 0, angTerra = 0, angLua = 0;
+
+function animate() {
+  requestAnimationFrame(animate);
+
+  if (animando) {
+    // Leitura dos controles de velocidade
+    const velSol   = parseFloat(document.getElementById('velSol').value) * 0.01;
+    const velTerra = parseFloat(document.getElementById('velTerra').value) * 0.01;
+    const velLua   = parseFloat(document.getElementById('velLua').value) * 0.02;
+
+    // Leitura dos raios orbitais
+    const orbTerra = parseFloat(document.getElementById('orbTerra').value);
+    const orbLua   = parseFloat(document.getElementById('orbLua').value);
+
+    angSol   += velSol;
+    angTerra += velTerra;
+    angLua   += velLua;
+
+    // Rotação própria do Sol
+    // Aqui apenas giramos o solMesh, NÃO o grupoSol (que afetaria a órbita)
+    solMesh.rotation.z = angSol;
+
+    // Órbita da Terra: giramos o grupo orbital
+    grupOrbTerra.rotation.z = angTerra;
+
+    // Rotação própria da Terra: giramos o grupo da Terra
+    grupoTerra.rotation.z = angTerra * 3;  // mais rápido que a orbital
+
+    // Atualiza distância orbital dinamicamente
+    grupoTerra.position.x = orbTerra;
+
+    // Órbita da Lua
+    grupOrbLua.rotation.z = angLua;
+    luaMesh.position.x    = orbLua;
+
+    // Atualiza raio visual das órbitas
+    // (recria os pontos para refletir mudança no slider)
+    if (Math.floor(angTerra * 100) % 5 === 0) {
+      // Atualiza visual das órbitas ~a cada 5 frames
+      const ptsTerra = [];
+      for (let i = 0; i <= 128; i++) {
+        const a = (i / 128) * Math.PI * 2;
+        ptsTerra.push(new THREE.Vector3(Math.cos(a)*orbTerra, Math.sin(a)*orbTerra, 0));
+      }
+      orbitaTerra.geometry.setFromPoints(ptsTerra);
+
+      const ptsLua = [];
+      for (let i = 0; i <= 128; i++) {
+        const a = (i / 128) * Math.PI * 2;
+        ptsLua.push(new THREE.Vector3(Math.cos(a)*orbLua, Math.sin(a)*orbLua, 0));
+      }
+      orbitaLua.geometry.setFromPoints(ptsLua);
+    }
+
+    // Visibilidade das órbitas
+    const mostrarOrb   = document.getElementById('mostrarOrbitas').checked;
+    orbitaTerra.visible = mostrarOrb;
+    orbitaLua.visible   = mostrarOrb;
+
+    // Atualiza display dos sliders
+    document.getElementById('vSol').textContent   = parseFloat(document.getElementById('velSol').value).toFixed(1);
+    document.getElementById('vTerra').textContent = parseFloat(document.getElementById('velTerra').value).toFixed(1);
+    document.getElementById('vLua').textContent   = parseFloat(document.getElementById('velLua').value).toFixed(1);
+    document.getElementById('oTerra').textContent = orbTerra;
+    document.getElementById('oLua').textContent   = orbLua;
+    document.getElementById('eSol').textContent   = parseFloat(document.getElementById('escSol').value).toFixed(2);
+    solMesh.scale.set(
+      parseFloat(document.getElementById('escSol').value),
+      parseFloat(document.getElementById('escSol').value),
+      1
+    );
+
+    // Calcula posição mundo da Terra (produto das matrizes)
+    const posT = new THREE.Vector3();
+    terraMesh.getWorldPosition(posT);
+    const posL = new THREE.Vector3();
+    luaMesh.getWorldPosition(posL);
+
+    document.getElementById('estado').innerHTML =
+      `<span style="color:#ffd700">Sol</span>: rot local = ${(angSol * 180/Math.PI % 360).toFixed(1)}° &nbsp;|&nbsp; ` +
+      `<span style="color:#74b9ff">Terra</span>: pos mundo = (${posT.x.toFixed(0)}, ${posT.y.toFixed(0)}) &nbsp;|&nbsp; ` +
+      `<span style="color:#aaa">Lua</span>: pos mundo = (${posL.x.toFixed(0)}, ${posL.y.toFixed(0)})<br>` +
+      `<span style="color:#888">M_terra = M_grupOrbTerra · M_grupoTerra &nbsp;&nbsp; M_lua = M_terra · M_grupOrbLua · M_lua_local</span>`;
+  }
+
+  renderer.render(scene, camera);
+}
+
+function toggleAnim() { animando = !animando; }
+function resetar() {
+  angSol = angTerra = angLua = 0;
+  solMesh.rotation.z = 0;
+  grupOrbTerra.rotation.z = 0;
+  grupoTerra.rotation.z = 0;
+  grupOrbLua.rotation.z = 0;
+}
+
+animate();
+</script>
+</body>
+</html>

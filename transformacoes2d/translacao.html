@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Translação 2D — Three.js</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #1a1a2e; color: #e0e0e0;
+      display: flex; flex-direction: column; align-items: center; padding: 20px; gap: 16px; }
+    h1 { color: #55efc4; font-size: 1.6rem; text-align: center; }
+    .subtitle { color: #aaa; font-size: 0.9rem; text-align: center; }
+    .teoria { background: #16213e; border-left: 4px solid #55efc4; padding: 16px 20px;
+      max-width: 900px; width: 100%; border-radius: 4px; font-size: 0.88rem; line-height: 1.7; }
+    .teoria h2 { color: #55efc4; margin-bottom: 8px; font-size: 1rem; }
+    .teoria code { background: #0f3460; padding: 2px 6px; border-radius: 3px;
+      font-family: monospace; color: #f0c040; display: inline-block; }
+    .matrix { font-family: monospace; background: #0f3460; padding: 10px 16px;
+      border-radius: 4px; display: inline-block; margin: 8px 0; font-size: 0.9rem;
+      color: #f0c040; line-height: 1.8; }
+    .controles { display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+      max-width: 900px; width: 100%; background: #16213e; padding: 12px 16px; border-radius: 6px; }
+    .controles label { font-size: 0.85rem; color: #aaa; }
+    .controles input[type="number"] { width: 65px; padding: 4px 6px; background: #0f3460;
+      border: 1px solid #55efc444; color: #fff; border-radius: 4px; text-align: center; }
+    button { padding: 6px 14px; background: #55efc4; color: #000; border: none;
+      border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.85rem; }
+    button:hover { background: #00b894; }
+    button.danger { background: #ff4757; color: #fff; }
+    #renderer-container { border: 2px solid #55efc444; border-radius: 4px; }
+    .teclado { background: #16213e; border-radius: 6px; padding: 10px 16px; max-width: 900px;
+      width: 100%; font-size: 0.85rem; display: flex; gap: 10px; flex-wrap: wrap; }
+    .tecla { background: #0f3460; border: 1px solid #55efc444; border-radius: 4px;
+      padding: 4px 10px; font-family: monospace; color: #55efc4; font-size: 0.8rem; }
+    .estado { background: #0f3460; border-radius: 6px; padding: 10px 16px; max-width: 900px;
+      width: 100%; font-family: monospace; font-size: 0.82rem; color: #7effd4; }
+  </style>
+</head>
+<body>
+
+<!--
+  AULA: TRANSLAÇÃO 2D COM THREE.JS
+  =====================================================================
+  OBJETIVO:
+    Demonstrar a transformação de TRANSLAÇÃO em 2D usando Three.js
+    com câmera ortográfica, e conectar com a teoria de matrizes 3x3
+    em coordenadas homogêneas.
+
+  TEORIA — COORDENADAS HOMOGÊNEAS:
+    Em 2D, usamos coordenadas homogêneas [x, y, w] onde w=1.
+    Isso permite representar translação como multiplicação de matriz:
+
+    | 1  0  tx |   | x |   | x + tx |
+    | 0  1  ty | × | y | = | y + ty |
+    | 0  0   1 |   | 1 |   |   1    |
+
+    Onde tx, ty são os deslocamentos em x e y.
+
+  THREE.JS:
+    O Three.js lida com a translação através de:
+      mesh.position.x += tx
+      mesh.position.y += ty
+    Internamente, isso atualiza a matriz de transformação 4x4
+    (world matrix) do objeto.
+
+  CÂMERA ORTOGRÁFICA:
+    Usamos OrthographicCamera(-w/2, w/2, h/2, -h/2, near, far)
+    pois não há perspectiva em CG 2D — tamanhos não variam com distância.
+-->
+
+<h1>Translação 2D — Coordenadas Homogêneas</h1>
+<p class="subtitle">Use as setas do teclado ou os botões para transladar o polígono</p>
+
+<div class="teoria">
+  <h2>Matriz de Translação (coordenadas homogêneas 3×3)</h2>
+  <p>A translação NÃO pode ser expressa como matriz 2×2 — exige a dimensão extra (homogênea):</p>
+  <br>
+  <div class="matrix">
+T(tx, ty) = | 1  0  tx |<br>
+            | 0  1  ty |<br>
+            | 0  0   1 |
+  </div>
+  <p style="margin-top:8px">
+    Ponto original <code>P = [x, y, 1]</code> → Ponto transformado <code>P' = T · P = [x+tx, y+ty, 1]</code>
+  </p>
+  <p style="margin-top:8px">
+    No Three.js: <code>mesh.position.set(tx, ty, 0)</code> ou <code>mesh.translateX(tx)</code>
+    atualiza automaticamente a matriz interna do objeto.
+  </p>
+</div>
+
+<div class="controles">
+  <label>Passo de translação:</label>
+  <input type="number" id="passo" value="30" min="1" max="200">
+  <label style="margin-left:8px">Cor:</label>
+  <input type="color" id="cor" value="#55efc4" style="width:36px;border:none;cursor:pointer">
+  <button onclick="reset()">Resetar posição</button>
+  <button onclick="mover(-1,0)">← Esquerda</button>
+  <button onclick="mover(1,0)">→ Direita</button>
+  <button onclick="mover(0,1)">↑ Cima</button>
+  <button onclick="mover(0,-1)">↓ Baixo</button>
+</div>
+
+<div class="teclado">
+  <strong style="color:#aaa">Teclado:</strong>
+  <span class="tecla">← →</span> Move X &nbsp;
+  <span class="tecla">↑ ↓</span> Move Y &nbsp;
+  <span class="tecla">R</span> Resetar
+</div>
+
+<div id="renderer-container"></div>
+
+<div class="estado" id="estado">
+  position: (0, 0) | tx acumulado: 0 | ty acumulado: 0
+</div>
+
+<!-- Three.js via CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<script>
+/* ===================================================================
+   CONFIGURAÇÃO — THREE.JS
+   =================================================================== */
+const W = 900, H = 440;
+
+// Renderer — renderizador WebGL
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(W, H);
+renderer.setClearColor(0x0a0a1a);
+document.getElementById('renderer-container').appendChild(renderer.domElement);
+
+// Câmera Ortográfica — sem perspectiva, ideal para CG 2D
+// Parâmetros: left, right, top, bottom, near, far
+const camera = new THREE.OrthographicCamera(
+  -W / 2,  // left   — borda esquerda do mundo visível
+   W / 2,  // right  — borda direita
+   H / 2,  // top    — borda superior
+  -H / 2,  // bottom — borda inferior
+  -1000,   // near
+   1000    // far
+);
+camera.position.z = 1;  // câmera afastada para ver a cena
+
+// Cena — container que agrupa todos os objetos
+const scene = new THREE.Scene();
+
+/* ===================================================================
+   CRIAÇÃO DO POLÍGONO
+   Usamos BufferGeometry para definir os vértices manualmente.
+   ===================================================================*/
+
+/**
+ * criaPoligono() — cria um pentágono (5 lados) centralizado na origem.
+ * Usamos shape + ShapeGeometry para facilitar.
+ */
+function criaPoligono() {
+  const forma = new THREE.Shape();
+  const lados = 5;
+  const raio  = 80;
+  // Percorre os ângulos de um pentágono
+  for (let i = 0; i <= lados; i++) {
+    const ang = (i / lados) * Math.PI * 2 - Math.PI / 2;
+    const vx  = Math.cos(ang) * raio;
+    const vy  = Math.sin(ang) * raio;
+    if (i === 0) forma.moveTo(vx, vy);
+    else         forma.lineTo(vx, vy);
+  }
+
+  const geo = new THREE.ShapeGeometry(forma);
+  const mat = new THREE.MeshBasicMaterial({
+    color:       0x55efc4,
+    side:        THREE.DoubleSide,
+    transparent: true,
+    opacity:     0.85
+  });
+
+  const malha = new THREE.Mesh(geo, mat);
+
+  // Arestas do polígono (wireframe manual)
+  const edgeMat = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 });
+  const edgeGeo = new THREE.EdgesGeometry(geo);
+  const arestas = new THREE.LineSegments(edgeGeo, edgeMat);
+  malha.add(arestas);  // adiciona como filho — move junto
+
+  return malha;
+}
+
+// Criamos o polígono e adicionamos à cena
+let poligono = criaPoligono();
+scene.add(poligono);
+
+// Eixos de referência (linhas horizontais e verticais)
+function adicionarEixos() {
+  const matEixo = new THREE.LineBasicMaterial({ color: 0xffffff18 });
+
+  // Grade
+  for (let x = -W / 2; x <= W / 2; x += 50) {
+    const geo = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(x, -H / 2, 0),
+      new THREE.Vector3(x,  H / 2, 0)
+    ]);
+    scene.add(new THREE.Line(geo, matEixo));
+  }
+  for (let y = -H / 2; y <= H / 2; y += 50) {
+    const geo = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(-W / 2, y, 0),
+      new THREE.Vector3( W / 2, y, 0)
+    ]);
+    scene.add(new THREE.Line(geo, matEixo));
+  }
+
+  // Eixos principais em destaque
+  const matX = new THREE.LineBasicMaterial({ color: 0xff4757 });
+  const matY = new THREE.LineBasicMaterial({ color: 0x74b9ff });
+  const geoX = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(-W / 2, 0, 0), new THREE.Vector3(W / 2, 0, 0)
+  ]);
+  const geoY = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(0, -H / 2, 0), new THREE.Vector3(0, H / 2, 0)
+  ]);
+  scene.add(new THREE.Line(geoX, matX));
+  scene.add(new THREE.Line(geoY, matY));
+}
+adicionarEixos();
+
+/* ===================================================================
+   LÓGICA DE TRANSLAÇÃO
+   =================================================================== */
+let txAcum = 0, tyAcum = 0;  // deslocamento acumulado
+
+/**
+ * mover(dx, dy) — aplica translação ao polígono.
+ *
+ * Matematicamente: P' = T(dx, dy) · P
+ * No Three.js: position.x e position.y fazem isso internamente.
+ *
+ * O passo define a magnitude em pixels (unidades de mundo).
+ */
+function mover(dx, dy) {
+  const passo = parseFloat(document.getElementById('passo').value) || 30;
+
+  // Atualiza a posição do objeto
+  // Three.js usa um sistema de coordenadas onde Y sobe
+  poligono.position.x += dx * passo;
+  poligono.position.y += dy * passo;
+
+  txAcum += dx * passo;
+  tyAcum += dy * passo;
+
+  atualizarEstado();
+  renderizar();
+}
+
+function reset() {
+  poligono.position.set(0, 0, 0);
+  txAcum = 0; tyAcum = 0;
+  atualizarEstado();
+  renderizar();
+}
+
+function atualizarEstado() {
+  const x = Math.round(poligono.position.x);
+  const y = Math.round(poligono.position.y);
+  document.getElementById('estado').innerHTML =
+    `position: (${x}, ${y}) &nbsp;|&nbsp; tx acumulado: ${Math.round(txAcum)} &nbsp;|&nbsp; ty acumulado: ${Math.round(tyAcum)}` +
+    `<br><span style="color:#aaa">Matriz T = | 1  0  ${Math.round(txAcum)} | 0  1  ${Math.round(tyAcum)} | 0  0  1 |</span>`;
+}
+
+// Atualiza cor do material quando mudada
+document.getElementById('cor').addEventListener('input', function() {
+  poligono.material.color.set(this.value);
+  renderizar();
+});
+
+/* ===================================================================
+   TECLADO — controle alternativo
+   =================================================================== */
+document.addEventListener('keydown', function(e) {
+  switch(e.key) {
+    case 'ArrowLeft':  e.preventDefault(); mover(-1,  0); break;
+    case 'ArrowRight': e.preventDefault(); mover( 1,  0); break;
+    case 'ArrowUp':    e.preventDefault(); mover( 0,  1); break;
+    case 'ArrowDown':  e.preventDefault(); mover( 0, -1); break;
+    case 'r': case 'R': reset(); break;
+  }
+});
+
+/* ===================================================================
+   RENDERIZAÇÃO
+   =================================================================== */
+function renderizar() {
+  renderer.render(scene, camera);
+}
+
+// Renderização inicial
+renderizar();
+atualizarEstado();
+</script>
+</body>
+</html>

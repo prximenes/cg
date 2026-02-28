@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Curvas de Bezier - Computacao Grafica</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "Segoe UI", sans-serif; background: #1a1a2e; color: #e0e0e0;
+      display: flex; flex-direction: column; align-items: center; padding: 20px; gap: 16px; }
+    h1 { color: #fd79a8; font-size: 1.6rem; text-align: center; }
+    .subtitle { color: #aaa; font-size: 0.9rem; text-align: center; }
+    .teoria { background: #16213e; border-left: 4px solid #fd79a8; padding: 16px 20px;
+      max-width: 900px; width: 100%; border-radius: 4px; font-size: 0.88rem; line-height: 1.7; }
+    .teoria h2 { color: #fd79a8; margin-bottom: 8px; font-size: 1rem; }
+    .teoria code { background: #0f3460; padding: 2px 6px; border-radius: 3px;
+      font-family: monospace; color: #f0c040; }
+    .controles { display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+      max-width: 900px; width: 100%; background: #16213e; padding: 12px 16px; border-radius: 6px; }
+    .controles label { font-size: 0.85rem; color: #aaa; }
+    button { padding: 6px 14px; background: #fd79a8; color: #000; border: none;
+      border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.85rem; }
+    button:hover { background: #e84393; color: #fff; }
+    button.sec { background: #0f3460; color: #fff; border: 1px solid #fd79a844; }
+    button.sec:hover { background: #1a4a80; }
+    canvas { border: 2px solid #fd79a844; cursor: crosshair; border-radius: 4px; background: #0a0a1a; }
+    .info { max-width: 900px; width: 100%; background: #0f3460; padding: 10px 16px;
+      border-radius: 6px; font-size: 0.82rem; color: #aaa; }
+    .info span { color: #fd79a8; }
+    select { background: #0f3460; color: #fff; border: 1px solid #fd79a844; padding: 4px 8px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+<!--
+  AULA: CURVAS DE BEZIER
+  =====================================================================
+  OBJETIVO:
+    Implementar curvas de Bezier usando a equacao parametrica,
+    permitindo controle interativo dos pontos de controle.
+
+  MATEMATICA - FORMULA GERAL (Bernstein):
+    Uma curva de Bezier de grau n e definida por n+1 pontos de controle
+    P0, P1, ..., Pn:
+
+      B(t) = SUM_{i=0}^{n} [ C(n,i) * t^i * (1-t)^(n-i) * Pi ]
+
+    onde t varia de 0 a 1, e C(n,i) sao os coeficientes binomiais.
+
+  CASOS ESPECIAIS:
+    Grau 1 (linear):
+      B(t) = (1-t)*P0 + t*P1
+
+    Grau 2 (quadratica - 3 pontos):
+      B(t) = (1-t)^2 * P0 + 2*(1-t)*t * P1 + t^2 * P2
+
+    Grau 3 (cubica - 4 pontos):
+      B(t) = (1-t)^3 * P0 + 3*(1-t)^2*t * P1
+           + 3*(1-t)*t^2 * P2 + t^3 * P3
+
+  INTERPRETACAO GEOMETRICA:
+    O algoritmo de De Casteljau interpola recursivamente entre
+    pares de pontos, gerando a mesma curva.
+    Cada ponto de controle "puxa" a curva em sua direcao com
+    um peso que varia conforme t.
+
+  INTERATIVIDADE:
+    - Clique no canvas para adicionar pontos de controle
+    - Arraste pontos existentes para modificar a curva
+    - Escolha o grau da curva (numero de pontos)
+-->
+
+<h1>Curvas de Bezier</h1>
+<p class="subtitle">Arraste os pontos de controle para modificar a curva em tempo real</p>
+
+<div class="teoria">
+  <h2>Formula Parametrica de Bezier</h2>
+  <p>
+    Para t em [0,1], cada ponto da curva e calculado pela combinacao convexa
+    dos pontos de controle ponderada pelos polinomios de Bernstein:
+  </p>
+  <p style="margin-top:8px">
+    <code>B(t) = &amp;Sigma; C(n,i) &middot; t&sup2; &middot; (1-t)^(n-i) &middot; P_i</code>
+  </p>
+  <p style="margin-top:8px">
+    A curva sempre passa pelos pontos <strong>P0</strong> (t=0) e <strong>Pn</strong> (t=1),
+    e esta contida no fecho convexo dos pontos de controle.
+    Os pontos intermediarios <em>atraem</em> a curva sem que ela os toque.
+  </p>
+</div>
+
+<div class="controles">
+  <label>Resolucao (passos de t):</label>
+  <select id="resolucao">
+    <option value="50">50 pontos</option>
+    <option value="100" selected>100 pontos</option>
+    <option value="500">500 pontos</option>
+    <option value="1000">1000 pontos</option>
+  </select>
+  <button class="sec" onclick="resetarPontos()">Resetar pontos</button>
+  <button class="sec" onclick="limpar()">Limpar tudo</button>
+  <button onclick="toggleAnimacao()">Animar t</button>
+  <label style="margin-left:8px">Mostrar poligono de controle:</label>
+  <input type="checkbox" id="mostrarPoligono" checked>
+  <label>Mostrar pontos De Casteljau:</label>
+  <input type="checkbox" id="mostrarDC" checked>
+</div>
+
+<canvas id="canvas" width="900" height="440"></canvas>
+
+<div class="info">
+  <span>Instrucoes:</span>
+  Clique no canvas para adicionar pontos de controle.
+  Arraste pontos existentes para modificar a curva.
+  Grau da curva: <span id="grauInfo">-</span> |
+  Pontos: <span id="nPontos">0</span> |
+  t atual: <span id="tAtual">-</span>
+</div>
+
+<script>
+const canvas = document.getElementById("canvas");
+const ctx    = canvas.getContext("2d");
+
+let pontos = [
+  { x: 100, y: 350 },
+  { x: 250, y:  80 },
+  { x: 650, y:  80 },
+  { x: 800, y: 350 },
+];
+
+let pontoDragging = -1;
+let tAnima = 0;
+let animando = false;
+let animId   = null;
+const RAIO_PONTO = 8;
+
+/*
+  MATEMATICA - COEFICIENTE BINOMIAL
+  C(n, k) = n! / (k! * (n-k)!)
+  Grau 1: B(t) = (1-t)*P0 + t*P1
+  Grau 2: B(t) = (1-t)^2*P0 + 2*(1-t)*t*P1 + t^2*P2
+  Grau 3: B(t) = (1-t)^3*P0 + 3*(1-t)^2*t*P1 + 3*(1-t)*t^2*P2 + t^3*P3
+*/
+function binomial(n, k) {
+  if (k < 0 || k > n) return 0;
+  if (k === 0 || k === n) return 1;
+  let resultado = 1;
+  for (let i = 0; i < k; i++) {
+    resultado = resultado * (n - i) / (i + 1);
+  }
+  return Math.round(resultado);
+}
+
+function bezier(t, pts) {
+  const n = pts.length - 1;
+  let bx = 0, by = 0;
+  for (let i = 0; i <= n; i++) {
+    const bernstein = binomial(n, i) * Math.pow(t, i) * Math.pow(1 - t, n - i);
+    bx += bernstein * pts[i].x;
+    by += bernstein * pts[i].y;
+  }
+  return { x: bx, y: by };
+}
+
+function deCasteljau(t, pts) {
+  const niveis = [pts.slice()];
+  let atual = pts.slice();
+  while (atual.length > 1) {
+    const proximo = [];
+    for (let i = 0; i < atual.length - 1; i++) {
+      proximo.push({
+        x: (1 - t) * atual[i].x + t * atual[i + 1].x,
+        y: (1 - t) * atual[i].y + t * atual[i + 1].y,
+      });
+    }
+    niveis.push(proximo);
+    atual = proximo;
+  }
+  return niveis;
+}
+
+function render() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = "#ffffff08";
+  ctx.lineWidth = 0.5;
+  for (let x = 0; x <= canvas.width; x += 20) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+  }
+  for (let y = 0; y <= canvas.height; y += 20) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+  }
+  if (pontos.length === 0) return;
+
+  const mostrarPoligono = document.getElementById("mostrarPoligono").checked;
+  const mostrarDC       = document.getElementById("mostrarDC").checked;
+  const resolucao       = parseInt(document.getElementById("resolucao").value);
+
+  if (mostrarPoligono && pontos.length > 1) {
+    ctx.strokeStyle = "#ffffff30";
+    ctx.lineWidth   = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(pontos[0].x, pontos[0].y);
+    for (let i = 1; i < pontos.length; i++) ctx.lineTo(pontos[i].x, pontos[i].y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  if (pontos.length >= 2) {
+    ctx.strokeStyle = "#fd79a8";
+    ctx.lineWidth   = 2.5;
+    ctx.beginPath();
+    for (let i = 0; i <= resolucao; i++) {
+      const t = i / resolucao;
+      const p = bezier(t, pontos);
+      if (i === 0) ctx.moveTo(p.x, p.y);
+      else         ctx.lineTo(p.x, p.y);
+    }
+    ctx.stroke();
+  }
+
+  if (animando && mostrarDC && pontos.length >= 2) {
+    const niveis = deCasteljau(tAnima, pontos);
+    const cores = ["#74b9ff", "#55efc4", "#ffeaa7", "#ff7675", "#fd79a8"];
+    for (let n = 1; n < niveis.length; n++) {
+      ctx.strokeStyle = cores[(n - 1) % cores.length] + "aa";
+      ctx.lineWidth   = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(niveis[n][0].x, niveis[n][0].y);
+      for (const p of niveis[n]) ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+      ctx.fillStyle = cores[(n - 1) % cores.length];
+      for (const p of niveis[n]) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    const ptFinal = niveis[niveis.length - 1][0];
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.arc(ptFinal.x, ptFinal.y, 6, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  pontos.forEach((p, i) => {
+    ctx.fillStyle = "#00000088";
+    ctx.beginPath();
+    ctx.arc(p.x + 2, p.y + 2, RAIO_PONTO, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = (i === 0 || i === pontos.length - 1) ? "#ffd700" : "#fd79a8";
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, RAIO_PONTO, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold 11px monospace";
+    ctx.fillText("P" + i, p.x + 10, p.y - 4);
+    ctx.fillStyle = "#888";
+    ctx.font = "9px monospace";
+    ctx.fillText("(" + Math.round(p.x) + ", " + Math.round(p.y) + ")", p.x + 10, p.y + 8);
+  });
+
+  document.getElementById("grauInfo").textContent = (pontos.length - 1).toString();
+  document.getElementById("nPontos").textContent  = pontos.length.toString();
+  document.getElementById("tAtual").textContent   = animando ? tAnima.toFixed(3) : "-";
+}
+
+function toggleAnimacao() {
+  animando = !animando;
+  if (animando) loop();
+}
+
+function loop() {
+  if (!animando) return;
+  tAnima = (tAnima + 0.005) % 1;
+  render();
+  animId = requestAnimationFrame(loop);
+}
+
+function encontrarPonto(mx, my) {
+  for (let i = 0; i < pontos.length; i++) {
+    const dx = mx - pontos[i].x;
+    const dy = my - pontos[i].y;
+    if (Math.sqrt(dx * dx + dy * dy) <= RAIO_PONTO + 4) return i;
+  }
+  return -1;
+}
+
+canvas.addEventListener("mousedown", function(e) {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  const idx = encontrarPonto(mx, my);
+  if (idx !== -1) { pontoDragging = idx; }
+  else { pontos.push({ x: mx, y: my }); render(); }
+});
+
+canvas.addEventListener("mousemove", function(e) {
+  if (pontoDragging === -1) return;
+  const rect = canvas.getBoundingClientRect();
+  pontos[pontoDragging].x = e.clientX - rect.left;
+  pontos[pontoDragging].y = e.clientY - rect.top;
+  if (!animando) render();
+});
+
+canvas.addEventListener("mouseup", function() { pontoDragging = -1; });
+
+canvas.addEventListener("dblclick", function(e) {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  const idx = encontrarPonto(mx, my);
+  if (idx !== -1) { pontos.splice(idx, 1); render(); }
+});
+
+function resetarPontos() {
+  if (animId) cancelAnimationFrame(animId);
+  animando = false; tAnima = 0;
+  pontos = [
+    { x: 100, y: 350 }, { x: 250, y: 80 },
+    { x: 650, y: 80  }, { x: 800, y: 350 },
+  ];
+  render();
+}
+
+function limpar() {
+  if (animId) cancelAnimationFrame(animId);
+  animando = false; tAnima = 0;
+  pontos = [];
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  document.getElementById("grauInfo").textContent = "-";
+  document.getElementById("nPontos").textContent  = "0";
+  document.getElementById("tAtual").textContent   = "-";
+}
+
+document.getElementById("mostrarPoligono").addEventListener("change", render);
+document.getElementById("mostrarDC").addEventListener("change", render);
+document.getElementById("resolucao").addEventListener("change", render);
+
+setInterval(() => { if (!animando) render(); }, 50);
+render();
+</script>
+</body>
+</html>

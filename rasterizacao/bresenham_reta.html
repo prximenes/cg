@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Bresenham — Rasterização de Retas</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      gap: 16px;
+    }
+    h1 { color: #ff6b6b; font-size: 1.6rem; text-align: center; }
+    .subtitle { color: #aaa; font-size: 0.9rem; text-align: center; }
+    .teoria {
+      background: #16213e;
+      border-left: 4px solid #ff6b6b;
+      padding: 16px 20px;
+      max-width: 860px;
+      width: 100%;
+      border-radius: 4px;
+      font-size: 0.88rem;
+      line-height: 1.7;
+    }
+    .teoria h2 { color: #ff6b6b; margin-bottom: 8px; font-size: 1rem; }
+    .teoria code {
+      background: #0f3460;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: monospace;
+      color: #f0c040;
+    }
+    .comparativo {
+      display: flex;
+      gap: 12px;
+      max-width: 860px;
+      width: 100%;
+    }
+    .comparativo > div {
+      flex: 1;
+      background: #16213e;
+      border-radius: 6px;
+      padding: 12px;
+      font-size: 0.82rem;
+    }
+    .comparativo h3 { font-size: 0.9rem; margin-bottom: 6px; }
+    .controles {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      max-width: 860px;
+      width: 100%;
+      background: #16213e;
+      padding: 12px 16px;
+      border-radius: 6px;
+    }
+    .controles label { font-size: 0.85rem; color: #aaa; }
+    .controles input[type="number"] {
+      width: 60px;
+      padding: 4px 6px;
+      background: #0f3460;
+      border: 1px solid #ff6b6b44;
+      color: #fff;
+      border-radius: 4px;
+      text-align: center;
+    }
+    button {
+      padding: 6px 14px;
+      background: #ff6b6b;
+      color: #000;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 0.85rem;
+    }
+    button:hover { background: #ee5a24; color: #fff; }
+    button.sec { background: #0f3460; color: #fff; border: 1px solid #ff6b6b44; }
+    button.sec:hover { background: #1a4a80; }
+    canvas { border: 2px solid #ff6b6b44; cursor: crosshair; border-radius: 4px; background: #0a0a1a; }
+    .log {
+      max-width: 860px;
+      width: 100%;
+      background: #0f3460;
+      padding: 12px 16px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 0.8rem;
+      max-height: 160px;
+      overflow-y: auto;
+      color: #7effd4;
+    }
+    .log span { display: block; border-bottom: 1px solid #ffffff11; padding: 1px 0; }
+    .zoom-canvas {
+      border: 2px solid #ffd70044;
+      border-radius: 4px;
+      background: #0a0a1a;
+    }
+    .row { display: flex; gap: 12px; align-items: flex-start; }
+  </style>
+</head>
+<body>
+
+<!-- =====================================================================
+  AULA: ALGORITMO DE BRESENHAM PARA RETAS
+  =====================================================================
+  OBJETIVO:
+    Implementar o algoritmo de Bresenham, que rasteriza uma reta
+    usando APENAS aritmética inteira (sem divisão ou ponto flutuante).
+
+  COMPARAÇÃO COM DDA:
+    DDA usa divisão e ponto flutuante → mais lento.
+    Bresenham usa soma e subtração de inteiros → muito mais rápido,
+    ideal para hardware gráfico.
+
+  IDEIA CENTRAL — A VARIÁVEL DE ERRO:
+    Ao percorrer o eixo x de x1 até x2, em cada passo precisamos
+    decidir se y permanece igual ou incrementa 1 unidade.
+
+    Mantemos um "erro acumulado" que representa o quanto a reta real
+    está acima do pixel atual.
+
+    erro = dy/dx  (inicialmente)
+
+    Mas para evitar ponto flutuante, multiplicamos tudo por 2*dx:
+      p = 2*dy - dx   (parâmetro inicial de decisão)
+
+    A cada passo em x:
+      SE p >= 0 → incrementa y, p = p + 2*(dy - dx)
+      SE p <  0 →     mantém y, p = p + 2*dy
+
+  GENERALIZAÇÃO:
+    O algoritmo base cobre apenas o 1º octante (0 ≤ inclinação ≤ 1,
+    da esquerda para direita). Para generalizar, tratamos os 8 octantes
+    com reflexões e trocas de eixo.
+  ===================================================================== -->
+
+<h1>Bresenham — Rasterização de Retas</h1>
+<p class="subtitle">Algoritmo de decisão incremental usando apenas aritmética inteira</p>
+
+<!-- TEORIA ============================================================ -->
+<div class="teoria">
+  <h2>A variável de decisão P (sem ponto flutuante!)</h2>
+  <p>
+    Ao avançar passo a passo em x, precisamos decidir: o próximo pixel é
+    <em>(x+1, y)</em> ou <em>(x+1, y+1)</em>?
+  </p>
+  <p style="margin-top:8px">
+    <code>p₀ = 2·dy − dx</code><br>
+    <code>se p ≥ 0: y++,  p = p + 2·(dy − dx)</code><br>
+    <code>se p &lt; 0:      p = p + 2·dy</code>
+  </p>
+  <p style="margin-top:8px">
+    A chave: multiplicando por <strong>2·dx</strong>, eliminamos a divisão.
+    Resultado: apenas somas e subtrações de inteiros!
+  </p>
+</div>
+
+<!-- COMPARATIVO DDA vs BRESENHAM ====================================== -->
+<div class="comparativo">
+  <div style="border-left: 3px solid #00d4ff;">
+    <h3 style="color:#00d4ff">DDA</h3>
+    <ul style="padding-left:16px; line-height:1.8">
+      <li>Usa divisão: <code>dx/steps</code></li>
+      <li>Usa ponto flutuante</li>
+      <li>Mais fácil de entender</li>
+      <li>Mais lento (CPU)</li>
+    </ul>
+  </div>
+  <div style="border-left: 3px solid #ff6b6b;">
+    <h3 style="color:#ff6b6b">Bresenham</h3>
+    <ul style="padding-left:16px; line-height:1.8">
+      <li>Apenas inteiros</li>
+      <li>Sem divisão</li>
+      <li>Mais eficiente</li>
+      <li>Padrão histórico em hardware gráfico</li>
+    </ul>
+  </div>
+</div>
+
+<!-- CONTROLES ========================================================= -->
+<div class="controles">
+  <label>P1 x:</label>
+  <input type="number" id="x1" value="80">
+  <label>y:</label>
+  <input type="number" id="y1" value="320">
+
+  <label style="margin-left:12px">P2 x:</label>
+  <input type="number" id="x2" value="750">
+  <label>y:</label>
+  <input type="number" id="y2" value="80">
+
+  <button onclick="desenhar()">Bresenham</button>
+  <button class="sec" onclick="desenharDDA()">Comparar DDA</button>
+  <button class="sec" onclick="exemploComDiferenca()" title="(208,230) → (464,73) — 1 pixel de diferença">⚡ Exemplo ±1px</button>
+  <button class="sec" onclick="limpar()">Limpar</button>
+  <label style="margin-left:8px">Zoom:</label>
+  <select id="zoomFator" style="background:#0f3460;color:#fff;border:1px solid #ff6b6b44;padding:4px;border-radius:4px;">
+    <option value="8">8x</option>
+    <option value="12" selected>12x</option>
+    <option value="16">16x</option>
+  </select>
+</div>
+
+<div class="row">
+  <!-- Canvas principal -->
+  <canvas id="canvas" width="660" height="400"></canvas>
+  <!-- Canvas de zoom para detalhar pixels -->
+  <div style="display:flex;flex-direction:column;gap:8px;align-items:center">
+    <p style="color:#aaa;font-size:0.8rem">Zoom — região central</p>
+    <canvas id="canvasZoom" class="zoom-canvas" width="188" height="188"></canvas>
+    <p style="color:#555;font-size:0.75rem">🟥 Bresenham &nbsp;🟦 DDA &nbsp;🟧 Diferença</p>
+  </div>
+</div>
+
+<div class="log" id="log">
+  <span style="color:#aaa">— Log do algoritmo aparecerá aqui —</span>
+</div>
+
+<script>
+/* =====================================================================
+   CONFIGURAÇÃO
+   ===================================================================== */
+const canvas     = document.getElementById('canvas');
+const ctx        = canvas.getContext('2d');
+const canvasZoom = document.getElementById('canvasZoom');
+const ctxZoom    = canvasZoom.getContext('2d');
+
+// Armazena pixels pintados para o zoom
+let pixelsBresenham = [];
+let pixelsDDA       = [];
+let cliques = [];
+
+function desenharGrade(c, ct) {
+  ct.clearRect(0, 0, c.width, c.height);
+  ct.strokeStyle = '#ffffff0a'; ct.lineWidth = 0.5;
+  for (let x = 0; x <= c.width; x += 10) {
+    ct.beginPath(); ct.moveTo(x, 0); ct.lineTo(x, c.height); ct.stroke();
+  }
+  for (let y = 0; y <= c.height; y += 10) {
+    ct.beginPath(); ct.moveTo(0, y); ct.lineTo(c.width, y); ct.stroke();
+  }
+  ct.strokeStyle = '#ffffff18'; ct.lineWidth = 1;
+  for (let x = 0; x <= c.width; x += 50) {
+    ct.beginPath(); ct.moveTo(x, 0); ct.lineTo(x, c.height); ct.stroke();
+  }
+  for (let y = 0; y <= c.height; y += 50) {
+    ct.beginPath(); ct.moveTo(0, y); ct.lineTo(c.width, y); ct.stroke();
+  }
+}
+
+/* =====================================================================
+   ALGORITMO DE BRESENHAM GENERALIZADO (8 octantes)
+   ===================================================================== */
+
+/**
+ * bresenhamReta(x1, y1, x2, y2)
+ *
+ * Trata os 8 octantes através de:
+ *  1. Verificar se o eixo dominante é x ou y (|dx| vs |dy|)
+ *  2. Verificar o sentido de percurso (positivo/negativo)
+ *  3. Aplicar o algoritmo base no eixo dominante
+ */
+function bresenhamReta(x1, y1, x2, y2, logAtivo = true) {
+  const log = document.getElementById('log');
+  if (logAtivo) log.innerHTML = '';
+  pixelsBresenham = [];
+
+  // Calculamos as diferenças e os sinais de avanço
+  let dx = Math.abs(x2 - x1);
+  let dy = Math.abs(y2 - y1);
+
+  // sx/sy são os sinais: +1 (avança) ou -1 (recua)
+  let sx = (x2 >= x1) ? 1 : -1;
+  let sy = (y2 >= y1) ? 1 : -1;
+
+  if (logAtivo) {
+    log.innerHTML += `<span>▶ P1=(${x1},${y1})  P2=(${x2},${y2})</span>`;
+    log.innerHTML += `<span>  dx=${dx}  dy=${dy}  sx=${sx}  sy=${sy}</span>`;
+  }
+
+  let x = x1, y = y1;
+
+  // -------------------------------
+  // CASO 1: eixo dominante = x  (|dx| >= |dy|)
+  // -------------------------------
+  if (dx >= dy) {
+    // Parâmetro de decisão inicial: p = 2*dy - dx
+    let p = 2 * dy - dx;
+    if (logAtivo) log.innerHTML += `<span>  Eixo dominante: X  |  p₀ = 2·${dy} − ${dx} = ${p}</span>`;
+
+    for (let i = 0; i <= dx; i++) {
+      // Pinta o pixel atual
+      ctx.fillStyle = '#ff6b6b';
+      ctx.fillRect(x, y, 1, 1);
+      pixelsBresenham.push({ x, y });
+
+      if (logAtivo && i < 10) {
+        log.innerHTML += `<span>  [${i}] pixel(${x},${y})  p=${p} → ${p >= 0 ? 'y++' : 'y mantém'}</span>`;
+      }
+
+      if (p >= 0) {
+        // Reta "subiu" demais → incrementa y
+        y += sy;
+        p += 2 * (dy - dx);   // atualização quando muda y
+      } else {
+        p += 2 * dy;           // atualização quando mantém y
+      }
+      x += sx;  // sempre avança no eixo dominante
+    }
+  }
+  // -------------------------------
+  // CASO 2: eixo dominante = y  (|dy| > |dx|)
+  // Trocamos os papéis de x e y
+  // -------------------------------
+  else {
+    let p = 2 * dx - dy;
+    if (logAtivo) log.innerHTML += `<span>  Eixo dominante: Y  |  p₀ = 2·${dx} − ${dy} = ${p}</span>`;
+
+    for (let i = 0; i <= dy; i++) {
+      ctx.fillStyle = '#ff6b6b';
+      ctx.fillRect(x, y, 1, 1);
+      pixelsBresenham.push({ x, y });
+
+      if (logAtivo && i < 10) {
+        log.innerHTML += `<span>  [${i}] pixel(${x},${y})  p=${p} → ${p >= 0 ? 'x++' : 'x mantém'}</span>`;
+      }
+
+      if (p >= 0) {
+        x += sx;
+        p += 2 * (dx - dy);
+      } else {
+        p += 2 * dx;
+      }
+      y += sy;
+    }
+  }
+
+  if (logAtivo) {
+    log.innerHTML += `<span style="color:#ffd700">✔ Pixels pintados: ${pixelsBresenham.length}</span>`;
+    log.scrollTop = log.scrollHeight;
+  }
+}
+
+/* =====================================================================
+   DDA para comparação visual
+   ===================================================================== */
+function ddaReta(x1, y1, x2, y2) {
+  pixelsDDA = [];
+  const dx = x2 - x1, dy = y2 - y1;
+  const steps = Math.max(Math.abs(dx), Math.abs(dy));
+  if (steps === 0) return;
+  const xi = dx / steps, yi = dy / steps;
+  let x = x1, y = y1;
+  for (let i = 0; i <= steps; i++) {
+    ctx.fillStyle = '#4488ff';     // azul sólido
+    ctx.fillRect(Math.round(x), Math.round(y), 1, 1);
+    pixelsDDA.push({ x: Math.round(x), y: Math.round(y) });
+    x += xi; y += yi;
+  }
+}
+
+/* =====================================================================
+   ZOOM — amplia a região central da reta para ver os pixels
+   ===================================================================== */
+function atualizarZoom(x1, y1, x2, y2) {
+  const fator  = parseInt(document.getElementById('zoomFator').value);
+  const cx     = Math.round((x1 + x2) / 2);   // centro x
+  const cy     = Math.round((y1 + y2) / 2);   // centro y
+  const metade = Math.floor(canvasZoom.width / fator / 2);
+
+  ctxZoom.clearRect(0, 0, canvasZoom.width, canvasZoom.height);
+  ctxZoom.fillStyle = '#0a0a1a';
+  ctxZoom.fillRect(0, 0, canvasZoom.width, canvasZoom.height);
+
+  // Grade do zoom
+  for (let px = 0; px <= canvasZoom.width; px += fator) {
+    ctxZoom.strokeStyle = '#ffffff22';
+    ctxZoom.lineWidth = 0.5;
+    ctxZoom.beginPath(); ctxZoom.moveTo(px, 0); ctxZoom.lineTo(px, canvasZoom.height); ctxZoom.stroke();
+  }
+  for (let py = 0; py <= canvasZoom.height; py += fator) {
+    ctxZoom.beginPath(); ctxZoom.moveTo(0, py); ctxZoom.lineTo(canvasZoom.width, py); ctxZoom.stroke();
+  }
+
+  // Constrói mapa de quais pixels cada algoritmo escolheu
+  const ddaSet  = new Set(pixelsDDA.map(p => `${p.x},${p.y}`));
+  const bresSet = new Set(pixelsBresenham.map(p => `${p.x},${p.y}`));
+
+  // Se não há pixels DDA, apenas exibe Bresenham em vermelho (modo simples)
+  if (pixelsDDA.length === 0) {
+    pixelsBresenham.forEach(p => {
+      const zx = (p.x - cx + metade) * fator;
+      const zy = (p.y - cy + metade) * fator;
+      ctxZoom.fillStyle = '#ff6b6b';
+      ctxZoom.fillRect(zx, zy, fator - 1, fator - 1);
+    });
+    return;
+  }
+
+  // Modo comparação: pinta os pixels do DDA
+  pixelsDDA.forEach(p => {
+    const zx = (p.x - cx + metade) * fator;
+    const zy = (p.y - cy + metade) * fator;
+    if (bresSet.has(`${p.x},${p.y}`)) {
+      // Ambos escolheram este pixel — mostra meio azul (DDA) // meio vermelho (Bresenham)
+      const mid = Math.floor((fator - 1) / 2);
+      ctxZoom.fillStyle = '#ff6b6b';
+      ctxZoom.fillRect(zx, zy, fator - 1, mid);
+      ctxZoom.fillStyle = '#4488ff';
+      ctxZoom.fillRect(zx, zy + mid, fator - 1, (fator - 1) - mid);
+    } else {
+      // Apenas DDA
+      ctxZoom.fillStyle = '#4488ff';
+      ctxZoom.fillRect(zx, zy, fator - 1, fator - 1);
+    }
+  });
+
+  // Pixels exclusivos do Bresenham (não escolhidos pelo DDA) → laranja
+  pixelsBresenham.forEach(p => {
+    if (!ddaSet.has(`${p.x},${p.y}`)) {
+      const zx = (p.x - cx + metade) * fator;
+      const zy = (p.y - cy + metade) * fator;
+      ctxZoom.fillStyle = '#ff9f43';
+      ctxZoom.fillRect(zx, zy, fator - 1, fator - 1);
+    }
+  });
+}
+
+/* =====================================================================
+   INTERFACE — funções chamadas pelos botões
+   ===================================================================== */
+function desenhar() {
+  const x1 = parseInt(document.getElementById('x1').value);
+  const y1 = parseInt(document.getElementById('y1').value);
+  const x2 = parseInt(document.getElementById('x2').value);
+  const y2 = parseInt(document.getElementById('y2').value);
+
+  desenharGrade(canvas, ctx);
+  pixelsDDA = [];
+  bresenhamReta(x1, y1, x2, y2);
+  marcarPontos(x1, y1, x2, y2);
+  atualizarZoom(x1, y1, x2, y2);
+}
+
+function desenharDDA() {
+  const x1 = parseInt(document.getElementById('x1').value);
+  const y1 = parseInt(document.getElementById('y1').value);
+  const x2 = parseInt(document.getElementById('x2').value);
+  const y2 = parseInt(document.getElementById('y2').value);
+
+  desenharGrade(canvas, ctx);
+  pixelsBresenham = [];
+  pixelsDDA = [];
+
+  // 1. Bresenham primeiro (vermelho, sem log) — fica na camada de baixo
+  bresenhamReta(x1, y1, x2, y2, false);
+
+  // 2. DDA por cima (azul sólido) — cobre os pixels onde os dois concordam
+  ddaReta(x1, y1, x2, y2);
+
+  // 3. Destacar pixels onde APENAS o Bresenham pintou (diferença real)
+  //    Pixels exclusivos do Bresenham aparecem em laranja
+  const ddaSet = new Set(pixelsDDA.map(p => `${p.x},${p.y}`));
+  let difCount = 0;
+  pixelsBresenham.forEach(p => {
+    if (!ddaSet.has(`${p.x},${p.y}`)) {
+      ctx.fillStyle = '#ff9f43';   // laranja = Bresenham escolheu pixel diferente
+      ctx.fillRect(p.x, p.y, 1, 1);
+      difCount++;
+    }
+  });
+
+  marcarPontos(x1, y1, x2, y2);
+  atualizarZoom(x1, y1, x2, y2);
+
+  // Log com legenda e contagem de diferenças
+  const log = document.getElementById('log');
+  log.innerHTML =
+    `<span>▶ Comparação: Bresenham (${pixelsBresenham.length}px) vs DDA (${pixelsDDA.length}px)</span>` +
+    `<span style="color:#4488ff">■ Azul — DDA (e pixels coincidentes)</span>` +
+    `<span style="color:#ff9f43">■ Laranja — Bresenham diferiu do DDA (${difCount} pixel${difCount !== 1 ? 's' : ''})</span>` +
+    `<span style="color:#aaa">  Zoom ao lado amplia a região central. ${difCount === 0 ? 'Os dois algoritmos produziram exatamente os mesmos pixels.' : 'Veja os pixels laranjas — são onde o Bresenham divergiu.'}</span>`;
+  log.scrollTop = log.scrollHeight;
+}
+
+function marcarPontos(x1, y1, x2, y2) {
+  ctx.fillStyle = '#ff4757';
+  ctx.beginPath(); ctx.arc(x1, y1, 5, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#ffd700';
+  ctx.beginPath(); ctx.arc(x2, y2, 5, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#ccc'; ctx.font = '11px monospace';
+  ctx.fillText(`P1(${x1},${y1})`, x1 + 7, y1 - 4);
+  ctx.fillText(`P2(${x2},${y2})`, x2 + 7, y2 - 4);
+}
+
+function limpar() {
+  cliques = []; pixelsBresenham = []; pixelsDDA = [];
+  desenharGrade(canvas, ctx);
+  ctxZoom.clearRect(0, 0, canvasZoom.width, canvasZoom.height);
+  document.getElementById('log').innerHTML = '<span style="color:#aaa">— Limpo —</span>';
+}
+
+/* Cliques interativos no canvas */
+canvas.addEventListener('click', function(e) {
+  const rect = canvas.getBoundingClientRect();
+  const cx = Math.round(e.clientX - rect.left);
+  const cy = Math.round(e.clientY - rect.top);
+  cliques.push({ x: cx, y: cy });
+
+  if (cliques.length === 1) {
+    document.getElementById('x1').value = cx;
+    document.getElementById('y1').value = cy;
+    desenharGrade(canvas, ctx);
+    ctx.fillStyle = '#ff4757';
+    ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI * 2); ctx.fill();
+  } else {
+    document.getElementById('x2').value = cx;
+    document.getElementById('y2').value = cy;
+    desenhar();
+    cliques = [];
+  }
+});
+
+// Inicializa
+desenharGrade(canvas, ctx);
+
+function exemploComDiferenca() {
+  document.getElementById('x1').value = 208;
+  document.getElementById('y1').value = 230;
+  document.getElementById('x2').value = 464;
+  document.getElementById('y2').value = 73;
+  desenharDDA();
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <title>DDA - Canvas 2D</title>
+  <style>
+    body { margin: 0; background: #111; color: #ddd; font: 14px/1.4 system-ui, sans-serif; }
+    .top {
+      padding: 10px 12px;
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      flex-wrap: wrap;
+      border-bottom: 1px solid #222;
+    }
+    canvas { display: block; background: #000; }
+    label { display: inline-flex; gap: 6px; align-items: center; }
+    input { width: 70px; background: #1a1a1a; color: #ddd; border: 1px solid #333; border-radius: 6px; padding: 6px 8px; }
+    button {
+      background: #1a1a1a; color: #ddd; border: 1px solid #333; border-radius: 8px;
+      padding: 8px 10px; cursor: pointer;
+    }
+    button:hover { border-color: #555; }
+    .hint { opacity: 0.9; }
+    kbd { background: #222; padding: 2px 6px; border: 1px solid #333; border-radius: 6px; }
+  </style>
+</head>
+<body>
+
+  <div class="top">
+    <strong>DDA (reta)</strong>
+
+    <label>x0 <input id="x0" type="number" value="50"></label>
+    <label>y0 <input id="y0" type="number" value="50"></label>
+    <label>x1 <input id="x1" type="number" value="500"></label>
+    <label>y1 <input id="y1" type="number" value="300"></label>
+
+    <button id="draw">Desenhar (DDA)</button>
+    <button id="clear">Limpar</button>
+
+    <span class="hint">Dica: clique no canvas para escolher pontos (2 cliques). Tecla <kbd>Esc</kbd> cancela.</span>
+  </div>
+
+  <canvas id="c"></canvas>
+
+  <script>
+    // =========================================================
+    // 1) SETUP DO CANVAS
+    // =========================================================
+    // Neste exemplo usamos um canvas 2D para desenhar "pixel a pixel".
+    // A ideia é simular a forma clássica de rasterização de reta:
+    // em vez de usar lineTo(), calculamos cada ponto manualmente com DDA.
+    const canvas = document.getElementById("c");
+    // alpha: false melhora desempenho em alguns navegadores, pois o canvas
+    // não precisa armazenar transparência no backbuffer.
+    const ctx = canvas.getContext("2d", { alpha: false });
+
+    function resize() {
+      // O canvas é redimensionado para ocupar toda a área útil da janela.
+      // Subtraímos a altura da barra superior (.top), onde ficam os controles.
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight - document.querySelector(".top").offsetHeight;
+
+      // Sempre que muda o tamanho, limpamos e redesenhamos a grade
+      // para manter o estado visual consistente.
+      clearCanvas();
+      drawGrid(50);
+    }
+    window.addEventListener("resize", resize);
+
+    function clearCanvas() {
+      // "Apaga" o frame atual pintando tudo com preto.
+      ctx.fillStyle = "black";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // Grade simples (opcional) para facilitar leitura espacial.
+    // step = distância entre linhas (em pixels).
+    function drawGrid(step) {
+      ctx.save();
+      ctx.strokeStyle = "#111";
+      ctx.lineWidth = 1;
+
+      for (let x = 0; x < canvas.width; x += step) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+      for (let y = 0; y < canvas.height; y += step) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // =========================================================
+    // 2) FUNÇÕES "PIXEL-BASED"
+    // =========================================================
+    // Essas funções abstraem operações básicas de desenho.
+    function drawPixel(x, y, color = "white") {
+      // Canvas usa origem no topo-esquerdo:
+      // - x cresce para a direita
+      // - y cresce para baixo
+      // Arredondamos coordenadas para cair na grade discreta de pixels.
+      ctx.fillStyle = color;
+      ctx.fillRect(Math.round(x), Math.round(y), 1, 1);
+    }
+
+    function drawPointMarker(x, y, color = "yellow") {
+      // Marcador visual dos pontos inicial/final (um pequeno círculo).
+      // Não faz parte do DDA em si; é apenas apoio didático.
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(x, y, 4, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // =========================================================
+    // 3) ALGORITMO DDA (DIGITAL DIFFERENTIAL ANALYZER)
+    // =========================================================
+    // Objetivo: desenhar uma reta entre (x0,y0) e (x1,y1)
+    // avançando em pequenos incrementos constantes.
+    //
+    // Passos matemáticos:
+    // 1) dx = x1 - x0, dy = y1 - y0
+    // 2) steps = max(|dx|, |dy|)
+    //    - Isso garante que andaremos 1 "unidade dominante" por iteração,
+    //      cobrindo a reta inteira sem buracos aparentes.
+    // 3) xInc = dx / steps, yInc = dy / steps
+    // 4) Começamos em (x0,y0) e repetimos "steps" vezes:
+    //    x += xInc, y += yInc, plotando cada ponto arredondado.
+    function ddaLine(x0, y0, x1, y1) {
+      const dx = x1 - x0;
+      const dy = y1 - y0;
+
+      const steps = Math.max(Math.abs(dx), Math.abs(dy));
+      if (steps === 0) {
+        // Caso degenerado: início e fim iguais (reta de comprimento zero).
+        drawPixel(x0, y0);
+        return;
+      }
+
+      const xInc = dx / steps;
+      const yInc = dy / steps;
+
+      let x = x0;
+      let y = y0;
+
+      // i <= steps inclui o ponto final explicitamente.
+      for (let i = 0; i <= steps; i++) {
+        drawPixel(x, y, "white");
+        x += xInc;
+        y += yInc;
+      }
+    }
+
+    // =========================================================
+    // 4) UI (INPUTS E BOTÕES)
+    // =========================================================
+    const el = (id) => document.getElementById(id);
+
+    function getInputs() {
+      // Number(...) converte texto dos inputs para número.
+      return {
+        x0: Number(el("x0").value),
+        y0: Number(el("y0").value),
+        x1: Number(el("x1").value),
+        y1: Number(el("y1").value),
+      };
+    }
+
+    function setInputs({x0,y0,x1,y1}) {
+      // Atualiza os campos da UI quando os pontos vêm de clique no canvas.
+      el("x0").value = x0;
+      el("y0").value = y0;
+      el("x1").value = x1;
+      el("y1").value = y1;
+    }
+
+    el("draw").addEventListener("click", () => {
+      const {x0,y0,x1,y1} = getInputs();
+      // Redesenha fundo + grade para garantir um "quadro limpo".
+      clearCanvas();
+      drawGrid(50);
+
+      // Marca pontos e depois rasteriza a reta com DDA.
+      drawPointMarker(x0, y0, "yellow");
+      drawPointMarker(x1, y1, "yellow");
+      ddaLine(x0, y0, x1, y1);
+    });
+
+    el("clear").addEventListener("click", () => {
+      clearCanvas();
+      drawGrid(50);
+    });
+
+    // =========================================================
+    // 5) INTERAÇÃO POR CLIQUE (2 CLIQUES DEFINEM A RETA)
+    // =========================================================
+    // clickState = 0 -> aguardando primeiro ponto
+    // clickState = 1 -> aguardando segundo ponto
+    let clickState = 0;
+    let p0 = null;
+
+    canvas.addEventListener("click", (ev) => {
+      // Converte coordenadas de tela (clientX/Y) para coordenadas locais do canvas.
+      const rect = canvas.getBoundingClientRect();
+      const x = ev.clientX - rect.left;
+      const y = ev.clientY - rect.top;
+
+      if (clickState === 0) {
+        // Primeiro clique define p0.
+        p0 = { x, y };
+        clickState = 1;
+
+        // Feedback visual: exibe somente o primeiro ponto.
+        clearCanvas(); drawGrid(50);
+        drawPointMarker(p0.x, p0.y, "yellow");
+      } else {
+        // Segundo clique define p1 e dispara o desenho final.
+        const p1 = { x, y };
+        clickState = 0;
+
+        // Inputs recebem valores arredondados para facilitar leitura/edição manual.
+        setInputs({ x0: Math.round(p0.x), y0: Math.round(p0.y), x1: Math.round(p1.x), y1: Math.round(p1.y) });
+
+        clearCanvas(); drawGrid(50);
+        drawPointMarker(p0.x, p0.y, "yellow");
+        drawPointMarker(p1.x, p1.y, "yellow");
+        // Aqui desenhamos com coordenadas reais (float), mantendo suavidade no cálculo.
+        ddaLine(p0.x, p0.y, p1.x, p1.y);
+      }
+    });
+
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        // Cancela seleção parcial de pontos (se o usuário mudou de ideia).
+        clickState = 0;
+        p0 = null;
+      }
+    });
+
+    // Inicialização da cena ao carregar a página.
+    resize();
+  </script>
+</body>
+</html>

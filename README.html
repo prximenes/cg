@@ -1,0 +1,1911 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Computação Gráfica 2D — Documentação</title>
+
+  <!-- Highlight.js — syntax highlighting para blocos de código -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+  <style>
+    /* ============================================================
+       RESET E VARIÁVEIS
+       ============================================================ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:         #0f0f1a;
+      --bg2:        #16213e;
+      --bg3:        #0d1b35;
+      --border:     #ffffff14;
+      --text:       #d4d8e8;
+      --text-muted: #7a8099;
+      --accent:     #00d4ff;
+      --accent2:    #a29bfe;
+      --green:      #55efc4;
+      --pink:       #fd79a8;
+      --yellow:     #ffeaa7;
+      --red:        #ff6b6b;
+      --orange:     #e17055;
+      --sidebar-w:  260px;
+      --font-mono:  'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      min-height: 100vh;
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    /* ============================================================
+       SIDEBAR
+       ============================================================ */
+    #sidebar {
+      position: fixed;
+      top: 0; left: 0;
+      width: var(--sidebar-w);
+      height: 100vh;
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #sidebar::-webkit-scrollbar { width: 4px; }
+    #sidebar::-webkit-scrollbar-track { background: transparent; }
+    #sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .sidebar-header {
+      padding: 20px 16px 14px;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: var(--bg2);
+      z-index: 1;
+    }
+    .sidebar-header h2 {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin-bottom: 4px;
+    }
+    .sidebar-header p {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
+    .nav-section {
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-section-title {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      padding: 6px 16px 4px;
+    }
+    .nav-link {
+      display: block;
+      padding: 5px 16px 5px 24px;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      border-left: 2px solid transparent;
+      transition: all 0.15s;
+    }
+    .nav-link:hover {
+      color: var(--text);
+      background: var(--bg3);
+      border-left-color: var(--accent);
+    }
+    .nav-link.active {
+      color: var(--accent);
+      border-left-color: var(--accent);
+      background: var(--bg3);
+    }
+    .nav-link.h2-link {
+      padding-left: 16px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .nav-link.h2-link:hover { color: var(--accent); }
+    .nav-link.h2-link.active { color: var(--accent); }
+
+    /* Botões de arquivo no sidebar */
+    .file-links {
+      padding: 10px 12px;
+    }
+    .file-link {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 8px;
+      border-radius: 4px;
+      text-decoration: none;
+      color: var(--text-muted);
+      font-size: 0.78rem;
+      font-family: var(--font-mono);
+      transition: all 0.15s;
+    }
+    .file-link:hover {
+      background: var(--bg3);
+      color: var(--text);
+    }
+    .file-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* ============================================================
+       CONTEÚDO PRINCIPAL
+       ============================================================ */
+    #content {
+      margin-left: var(--sidebar-w);
+      flex: 1;
+      max-width: 900px;
+      padding: 48px 52px 80px;
+    }
+
+    /* ============================================================
+       TIPOGRAFIA
+       ============================================================ */
+    h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 10px;
+      line-height: 1.2;
+    }
+    h1 .accent { color: var(--accent); }
+
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #fff;
+      margin: 52px 0 16px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--border);
+      scroll-margin-top: 24px;
+    }
+    h2 .pill {
+      font-size: 0.7rem;
+      padding: 2px 10px;
+      border-radius: 20px;
+      margin-left: 10px;
+      font-weight: 600;
+      vertical-align: middle;
+      position: relative;
+      top: -2px;
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #e0e4f0;
+      margin: 32px 0 12px;
+      scroll-margin-top: 24px;
+    }
+
+    h4 {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin: 24px 0 8px;
+    }
+
+    p { margin-bottom: 14px; }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    strong { color: #fff; font-weight: 600; }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: 0.85em;
+      background: var(--bg3);
+      color: #f0c040;
+      padding: 2px 7px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+
+    /* ============================================================
+       CALLOUT / QUOTE
+       ============================================================ */
+    .callout {
+      background: var(--bg2);
+      border-left: 4px solid var(--accent);
+      padding: 14px 18px;
+      border-radius: 0 6px 6px 0;
+      margin: 18px 0;
+      font-size: 0.9rem;
+    }
+    .callout.green  { border-left-color: var(--green);  }
+    .callout.pink   { border-left-color: var(--pink);   }
+    .callout.yellow { border-left-color: var(--yellow); }
+    .callout.red    { border-left-color: var(--red);    }
+    .callout.orange { border-left-color: var(--orange); }
+    .callout strong { color: var(--accent); }
+    .callout.green  strong { color: var(--green);  }
+    .callout.pink   strong { color: var(--pink);   }
+    .callout.yellow strong { color: var(--yellow); }
+    .callout.orange strong { color: var(--orange); }
+
+    /* ============================================================
+       BLOCOS DE CÓDIGO
+       ============================================================ */
+    .code-block {
+      position: relative;
+      margin: 18px 0;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .code-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #1d2535;
+      padding: 8px 14px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.75rem;
+    }
+    .code-header .lang {
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .code-header .file-ref {
+      color: var(--accent);
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+    }
+    .code-block pre {
+      margin: 0 !important;
+      border-radius: 0 !important;
+      font-size: 0.82rem !important;
+      line-height: 1.65 !important;
+      padding: 16px !important;
+    }
+    .code-block pre code {
+      background: none !important;
+      border: none !important;
+      padding: 0 !important;
+      color: inherit !important;
+      font-size: inherit !important;
+    }
+
+    /* Code block sem linguagem (math/pseudocódigo) */
+    .code-math {
+      background: #0d1523;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin: 18px 0;
+      font-family: var(--font-mono);
+      font-size: 0.83rem;
+      line-height: 1.9;
+      color: #c8d3f5;
+      overflow-x: auto;
+      white-space: pre;
+    }
+    .code-math .hl  { color: #f0c040; }   /* destaque amarelo */
+    .code-math .grn { color: var(--green); }
+    .code-math .cmt { color: #546e7a; font-style: italic; }
+    .code-math .kw  { color: var(--pink); }
+    .code-math .num { color: #ff9966; }
+
+    /* ============================================================
+       TABELAS
+       ============================================================ */
+    .table-wrap { overflow-x: auto; margin: 18px 0; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    th {
+      background: var(--bg3);
+      color: var(--accent);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 10px 14px;
+      text-align: left;
+      border-bottom: 2px solid var(--border);
+    }
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg2); }
+    td code { font-size: 0.8em; }
+    td strong { color: var(--accent); }
+
+    /* ============================================================
+       CARDS DE ARQUIVO
+       ============================================================ */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 12px;
+      margin: 20px 0;
+    }
+    .card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      text-decoration: none;
+      transition: all 0.2s;
+      display: block;
+    }
+    .card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+      text-decoration: none;
+    }
+    .card-tag {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-bottom: 8px;
+      display: inline-block;
+      font-weight: 600;
+    }
+    .card-path {
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      color: var(--accent);
+      margin-bottom: 4px;
+      display: block;
+    }
+    .card-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    /* ============================================================
+       ÁRVORE DE ARQUIVOS
+       ============================================================ */
+    .filetree {
+      background: #0d1523;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin: 18px 0;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      line-height: 2;
+      color: var(--text-muted);
+    }
+    .filetree .dir  { color: var(--accent2); font-weight: 600; }
+    .filetree .file { color: var(--green); }
+    .filetree .note { color: var(--text-muted); font-style: italic; }
+
+    /* ============================================================
+       SEÇÃO DE MATRIZ
+       ============================================================ */
+    .matrix-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 12px;
+      margin: 18px 0;
+    }
+    .matrix-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+    }
+    .matrix-card h5 {
+      font-size: 0.78rem;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 10px;
+    }
+    .matrix-card .mat {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      line-height: 1.9;
+      color: #f0c040;
+      background: var(--bg3);
+      padding: 8px 12px;
+      border-radius: 4px;
+      white-space: pre;
+      overflow-x: auto;
+    }
+
+    /* ============================================================
+       PROGRESSÃO DE ESTUDO
+       ============================================================ */
+    .progress-flow {
+      margin: 20px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .prog-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 10px 0;
+    }
+    .prog-item:not(:last-child) {
+      border-bottom: none;
+    }
+    .prog-num {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #000;
+      font-size: 0.75rem;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .prog-body { flex: 1; }
+    .prog-file {
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      color: var(--green);
+      display: block;
+    }
+    .prog-note {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+    .prog-arrow {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      padding: 2px 0 2px 42px;
+    }
+
+    /* ============================================================
+       DIVIDER
+       ============================================================ */
+    hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 40px 0;
+    }
+
+    /* ============================================================
+       BADGE / PILL
+       ============================================================ */
+    .badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-weight: 600;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+
+    /* ============================================================
+       PROPERTY LIST (hero)
+       ============================================================ */
+    .hero {
+      background: linear-gradient(135deg, #16213e 0%, #0d1b35 100%);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 24px 28px;
+      margin: 20px 0 32px;
+    }
+    .hero p { margin-bottom: 8px; font-size: 0.9rem; }
+    .hero .deps {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+    .dep-badge {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 0.78rem;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .dep-badge .dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+    }
+
+    /* ============================================================
+       STEPS (numerados com linha conectora)
+       ============================================================ */
+    .steps { margin: 16px 0; }
+    .step {
+      display: flex;
+      gap: 14px;
+      padding-bottom: 16px;
+      position: relative;
+    }
+    .step:not(:last-child)::before {
+      content: '';
+      position: absolute;
+      left: 13px; top: 28px;
+      width: 2px;
+      bottom: 0;
+      background: var(--border);
+    }
+    .step-num {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      border: 2px solid var(--accent);
+      color: var(--accent);
+      font-size: 0.72rem;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .step-body { flex: 1; padding-top: 4px; }
+    .step-body strong { display: block; margin-bottom: 3px; font-size: 0.88rem; }
+    .step-body p { font-size: 0.83rem; color: var(--text-muted); margin: 0; }
+
+    /* ============================================================
+       SCROLL PROGRESS BAR
+       ============================================================ */
+    #progress-bar {
+      position: fixed;
+      top: 0; left: 0;
+      height: 3px;
+      background: var(--accent);
+      width: 0%;
+      z-index: 200;
+      transition: width 0.1s;
+    }
+
+    /* ============================================================
+       BACK TO TOP
+       ============================================================ */
+    #top-btn {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      width: 38px; height: 38px;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.2s;
+      z-index: 100;
+      font-size: 1rem;
+      color: var(--text-muted);
+    }
+    #top-btn:hover { border-color: var(--accent); color: var(--accent); }
+    #top-btn.visible { opacity: 1; }
+
+    /* ============================================================
+       CREDITOS / FOOTER
+       ============================================================ */
+    .creditos-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 28px 32px;
+      margin: 20px 0 0;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .creditos-autor {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .creditos-avatar {
+      width: 52px; height: 52px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #000;
+      flex-shrink: 0;
+      letter-spacing: -1px;
+    }
+    .creditos-nome {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    .creditos-nome span {
+      font-size: 0.78rem;
+      font-weight: 400;
+      color: var(--text-muted);
+      display: block;
+      margin-top: 2px;
+    }
+    .creditos-meta {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .creditos-meta .chip {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 5px 12px;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .creditos-meta .chip b { color: var(--text); }
+    .licenca-box {
+      background: var(--bg3);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      padding: 16px 20px;
+    }
+    .licenca-titulo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .licenca-titulo .badge-cc {
+      background: #f1c40f22;
+      color: #f1c40f;
+      border: 1px solid #f1c40f44;
+      border-radius: 6px;
+      padding: 3px 10px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+    .licenca-titulo a {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+    .licenca-titulo a:hover { color: var(--accent); }
+    .licenca-itens {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    @media (max-width: 700px) { .licenca-itens { grid-template-columns: 1fr; } }
+    .licenca-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 0.82rem;
+    }
+    .licenca-item .ico {
+      font-size: 1rem;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .licenca-item p { margin: 0; color: var(--text-muted); }
+    .licenca-item p b { color: var(--text); }
+    .licenca-aviso {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border);
+      padding-top: 12px;
+      margin-top: 4px;
+    }
+    .licenca-aviso code { font-size: 0.75em; }
+
+    /* Footer da página */
+    footer {
+      margin-left: var(--sidebar-w);
+      background: var(--bg2);
+      border-top: 1px solid var(--border);
+      padding: 14px 52px;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    footer a { color: var(--text-muted); }
+    footer a:hover { color: var(--accent); }
+    @media (max-width: 900px) {
+      footer { margin-left: 0; padding: 14px 20px; }
+    }
+
+    /* ============================================================
+       RESPONSIVE
+       ============================================================ */
+    @media (max-width: 900px) {
+      #sidebar { display: none; }
+      #content { margin-left: 0; padding: 24px 20px 60px; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="progress-bar"></div>
+
+<!-- ============================================================
+     SIDEBAR
+     ============================================================ -->
+<nav id="sidebar">
+  <div class="sidebar-header">
+    <h2>Computação Gráfica 2D</h2>
+    <p>Material de Aula — Documentação</p>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Início</div>
+    <a href="#inicio"    class="nav-link h2-link">Visão Geral</a>
+    <a href="#estrutura" class="nav-link">Estrutura do Projeto</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Parte 1 — Rasterização</div>
+    <a href="#rasterizacao" class="nav-link h2-link">Introdução</a>
+    <a href="#dda"          class="nav-link">1.1 — DDA</a>
+    <a href="#bres-reta"    class="nav-link">1.2 — Bresenham Retas</a>
+    <a href="#bres-circ"    class="nav-link">1.3 — Bresenham Círculos</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Parte 2 — Curvas</div>
+    <a href="#bezier"      class="nav-link h2-link">Bézier</a>
+    <a href="#bernstein"   class="nav-link">Fórmula de Bernstein</a>
+    <a href="#casteljau"   class="nav-link">De Casteljau</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Parte 3 — Transformações</div>
+    <a href="#transf"      class="nav-link h2-link">Coord. Homogêneas</a>
+    <a href="#translacao"  class="nav-link">3.1 — Translação</a>
+    <a href="#rotacao"     class="nav-link">3.2 — Rotação</a>
+    <a href="#escala"      class="nav-link">3.3 — Escala</a>
+    <a href="#composicao"  class="nav-link">3.4 — Composição</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Parte 4 — Viewing</div>
+    <a href="#viewing"     class="nav-link h2-link">Janela → Viewport</a>
+    <a href="#formula-vp"  class="nav-link">Fórmula de Mapeamento</a>
+    <a href="#distorcao"   class="nav-link">Distorção de Proporção</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Referências</div>
+    <a href="#matrizes"    class="nav-link h2-link">Tabela de Matrizes</a>
+    <a href="#controles"   class="nav-link">Controles</a>
+    <a href="#conceitos"   class="nav-link">Glossário</a>
+    <a href="#progressao"  class="nav-link">Progressão de Estudo</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Sobre</div>
+    <a href="#creditos"    class="nav-link h2-link">Créditos e Licença</a>
+  </div>
+
+  <!-- Links rápidos para os arquivos -->
+  <div class="nav-section">
+    <div class="nav-section-title">Abrir Arquivos</div>
+    <div class="file-links">
+      <a href="rasterizacao/dda.html"               target="_blank" class="file-link"><span class="file-dot" style="background:#00d4ff"></span>dda.html</a>
+      <a href="rasterizacao/bresenham_reta.html"    target="_blank" class="file-link"><span class="file-dot" style="background:#ff6b6b"></span>bresenham_reta.html</a>
+      <a href="rasterizacao/bresenham_circulo.html" target="_blank" class="file-link"><span class="file-dot" style="background:#a29bfe"></span>bresenham_circulo.html</a>
+      <a href="curvas/bezier.html"                  target="_blank" class="file-link"><span class="file-dot" style="background:#fd79a8"></span>bezier.html</a>
+      <a href="transformacoes2d/translacao.html"    target="_blank" class="file-link"><span class="file-dot" style="background:#55efc4"></span>translacao.html</a>
+      <a href="transformacoes2d/rotacao.html"       target="_blank" class="file-link"><span class="file-dot" style="background:#74b9ff"></span>rotacao.html</a>
+      <a href="transformacoes2d/escala.html"        target="_blank" class="file-link"><span class="file-dot" style="background:#ffeaa7"></span>escala.html</a>
+      <a href="transformacoes2d/composicao.html"    target="_blank" class="file-link"><span class="file-dot" style="background:#e17055"></span>composicao.html</a>
+      <a href="viewing/janela_viewport.html"        target="_blank" class="file-link"><span class="file-dot" style="background:#a29bfe"></span>janela_viewport.html</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ============================================================
+     CONTEÚDO
+     ============================================================ -->
+<main id="content">
+
+  <!-- HERO ======================================================= -->
+  <section id="inicio">
+    <h1><span class="accent">Computação Gráfica 2D</span><br>Material de Aula</h1>
+
+    <div class="hero">
+      <p>Material didático interativo cobrindo os fundamentos de Computação Gráfica 2D.
+         Cada arquivo HTML é <strong>independente</strong>, autocontido e funcional —
+         basta abrir no navegador ou com Live Server.</p>
+      <div class="deps">
+        <div class="dep-badge"><span class="dot" style="background:#00d4ff"></span>Canvas 2D puro — rasterização e curvas</div>
+        <div class="dep-badge"><span class="dot" style="background:#a29bfe"></span>Three.js r128 via CDN — transformações</div>
+        <div class="dep-badge"><span class="dot" style="background:#55efc4"></span>Sem instalação necessária</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ESTRUTURA ================================================== -->
+  <section id="estrutura">
+    <h3>Estrutura do Projeto</h3>
+
+    <div class="filetree">
+<span class="dir">cg/</span>
+ ├── <span class="file">README.html</span>               <span class="note">← esta documentação</span>
+ ├── <span class="dir">rasterizacao/</span>
+ │     ├── <span class="file">dda.html</span>              <span class="note">← Algoritmo DDA</span>
+ │     ├── <span class="file">bresenham_reta.html</span>   <span class="note">← Bresenham para retas</span>
+ │     └── <span class="file">bresenham_circulo.html</span><span class="note">← Bresenham para círculos</span>
+ │
+ ├── <span class="dir">curvas/</span>
+ │     └── <span class="file">bezier.html</span>           <span class="note">← Curvas de Bézier interativas</span>
+ │
+ ├── <span class="dir">transformacoes2d/</span>
+ │     ├── <span class="file">translacao.html</span>       <span class="note">← Translação (coord. homogêneas)</span>
+ │     ├── <span class="file">rotacao.html</span>          <span class="note">← Rotação 2D</span>
+ │     ├── <span class="file">escala.html</span>           <span class="note">← Escala e reflexão</span>
+ │     └── <span class="file">composicao.html</span>       <span class="note">← Composição / THREE.Group</span>
+ │
+ └── <span class="dir">viewing/</span>
+       └── <span class="file">janela_viewport.html</span>  <span class="note">← Transformação Janela → Viewport</span></div>
+
+    <div class="cards">
+      <a href="rasterizacao/dda.html" target="_blank" class="card">
+        <span class="card-tag" style="background:#00d4ff22;color:#00d4ff">Canvas 2D</span>
+        <span class="card-path">rasterizacao/dda.html</span>
+        <span class="card-desc">Algoritmo DDA com log de passos e clique interativo</span>
+      </a>
+      <a href="rasterizacao/bresenham_reta.html" target="_blank" class="card">
+        <span class="card-tag" style="background:#ff6b6b22;color:#ff6b6b">Canvas 2D</span>
+        <span class="card-path">rasterizacao/bresenham_reta.html</span>
+        <span class="card-desc">Bresenham para retas — 8 octantes + zoom comparativo</span>
+      </a>
+      <a href="rasterizacao/bresenham_circulo.html" target="_blank" class="card">
+        <span class="card-tag" style="background:#a29bfe22;color:#a29bfe">Canvas 2D</span>
+        <span class="card-path">rasterizacao/bresenham_circulo.html</span>
+        <span class="card-desc">Simetria de 8 octantes + animação crescimento do raio</span>
+      </a>
+      <a href="curvas/bezier.html" target="_blank" class="card">
+        <span class="card-tag" style="background:#fd79a822;color:#fd79a8">Canvas 2D</span>
+        <span class="card-path">curvas/bezier.html</span>
+        <span class="card-desc">Bézier interativo — arrastar pontos, De Casteljau animado</span>
+      </a>
+      <a href="transformacoes2d/translacao.html" target="_blank" class="card">
+        <span class="card-tag" style="background:#55efc422;color:#55efc4">Three.js</span>
+        <span class="card-path">transformacoes2d/translacao.html</span>
+        <span class="card-desc">Translação com setas do teclado + matriz em tempo real</span>
+      </a>
+      <a href="transformacoes2d/rotacao.html" target="_blank" class="card">
+        <span class="card-tag" style="background:#74b9ff22;color:#74b9ff">Three.js</span>
+        <span class="card-path">transformacoes2d/rotacao.html</span>
+        <span class="card-desc">Rotação com pivô arbitrário — teclas Q / E</span>
+      </a>
+      <a href="transformacoes2d/escala.html" target="_blank" class="card">
+        <span class="card-tag" style="background:#ffeaa722;color:#ffeaa7">Three.js</span>
+        <span class="card-path">transformacoes2d/escala.html</span>
+        <span class="card-desc">Sliders sx/sy independentes + reflexão</span>
+      </a>
+      <a href="transformacoes2d/composicao.html" target="_blank" class="card">
+        <span class="card-tag" style="background:#e1705522;color:#e17055">Three.js</span>
+        <span class="card-path">transformacoes2d/composicao.html</span>
+        <span class="card-desc">Sistema solar — hierarquia THREE.Group</span>
+      </a>
+      <a href="viewing/janela_viewport.html" target="_blank" class="card">
+        <span class="card-tag" style="background:#a29bfe22;color:#a29bfe">Canvas 2D</span>
+        <span class="card-path">viewing/janela_viewport.html</span>
+        <span class="card-desc">Mapeamento Janela → Viewport lado a lado</span>
+      </a>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- PARTE 1 — RASTERIZAÇÃO ===================================== -->
+  <h2 id="rasterizacao">Parte 1 — Rasterização
+    <span class="pill" style="background:#00d4ff22;color:#00d4ff">Canvas 2D</span>
+  </h2>
+
+  <div class="callout">
+    <strong>Conceito central:</strong> converter geometria matemática contínua
+    (retas, círculos) em pixels discretos numa grade bidimensional.
+  </div>
+
+  <p>A tela de um computador é uma grade de pixels. Quando pedimos para desenhar uma reta de
+  <code>(0,0)</code> a <code>(800,600)</code>, o código precisa decidir quais dos milhões de
+  pixels devem ser acesos. Esse processo é a <strong>rasterização</strong>.</p>
+
+  <!-- 1.1 DDA ---------------------------------------------------- -->
+  <h3 id="dda">1.1 — DDA (Digital Differential Analyzer)</h3>
+  <p><strong>Arquivo:</strong> <a href="rasterizacao/dda.html" target="_blank"><code>rasterizacao/dda.html</code></a></p>
+
+  <p>O DDA avança passo a passo ao longo do <strong>eixo dominante</strong> (aquele com
+  maior variação), calculando a posição no eixo secundário como número de ponto flutuante
+  e arredondando para o pixel mais próximo.</p>
+
+  <h4>Matemática</h4>
+  <div class="code-math"><span class="hl">dx</span>    = x2 - x1           <span class="cmt">(variação total em x)</span>
+<span class="hl">dy</span>    = y2 - y1           <span class="cmt">(variação total em y)</span>
+<span class="hl">steps</span> = max(|dx|, |dy|)   <span class="cmt">(nº de pixels = eixo dominante)</span>
+
+<span class="hl">xInc</span>  = dx / steps        <span class="cmt">(incremento em x por passo — pode ser fração)</span>
+<span class="hl">yInc</span>  = dy / steps        <span class="cmt">(incremento em y por passo — pode ser fração)</span>
+
+<span class="kw">para</span> i <span class="kw">de</span> 0 <span class="kw">até</span> steps:
+    pixel( round(x), round(y) )
+    x ← x + xInc
+    y ← y + yInc</div>
+
+  <p>A divisão por <code>steps</code> garante que o eixo dominante avance exatamente
+  <strong>1 pixel por passo</strong>, enquanto o eixo secundário avança proporcionalmente.</p>
+
+  <h4>Implementação — dda.html (linhas 238–290)</h4>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="lang">javascript</span>
+      <span class="file-ref">rasterizacao/dda.html</span>
+    </div>
+    <pre><code class="language-javascript">function algoritmoDDA(x1, y1, x2, y2) {
+  const dx    = x2 - x1;
+  const dy    = y2 - y1;
+  const steps = Math.max(Math.abs(dx), Math.abs(dy));
+
+  // Incrementos fracionários: eixo dominante avança 1/passo
+  const xInc = dx / steps;
+  const yInc = dy / steps;
+
+  let x = x1;
+  let y = y1;
+
+  for (let i = 0; i &lt;= steps; i++) {
+    // Arredonda para o pixel inteiro mais próximo
+    ctx.fillRect(Math.round(x), Math.round(y), 1, 1);
+
+    x += xInc;   // avança fração em x
+    y += yInc;   // avança fração em y
+  }
+}</code></pre>
+  </div>
+
+  <h4>Prós e contras</h4>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Aspecto</th><th>DDA</th></tr></thead>
+      <tbody>
+        <tr><td>Complexidade</td><td>Simples de entender</td></tr>
+        <tr><td>Aritmética</td><td><strong>Ponto flutuante</strong> — divisão e arredondamento</td></tr>
+        <tr><td>Precisão</td><td>Boa, mas acumula erros de arredondamento</td></tr>
+        <tr><td>Performance</td><td>Mais lento (operações float)</td></tr>
+        <tr><td>Uso atual</td><td>Didático / referência</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 1.2 BRESENHAM RETA ----------------------------------------- -->
+  <h3 id="bres-reta">1.2 — Bresenham para Retas</h3>
+  <p><strong>Arquivo:</strong> <a href="rasterizacao/bresenham_reta.html" target="_blank"><code>rasterizacao/bresenham_reta.html</code></a></p>
+
+  <p>Jack Bresenham (1962) percebeu que multiplicando a comparação por <code>2·dx</code>
+  é possível tomar a mesma decisão do DDA usando <strong>apenas inteiros</strong>:
+  somas e subtrações, sem divisão, sem ponto flutuante.</p>
+
+  <h4>A variável de decisão P</h4>
+  <p>A cada passo no eixo x, precisamos decidir: o próximo pixel é <code>(x+1, y)</code>
+  ou <code>(x+1, y+1)</code>? O parâmetro acumulado <strong>P</strong> responde isso:</p>
+
+  <div class="code-math"><span class="cmt">Parâmetro inicial (1º octante):</span>
+    <span class="hl">p₀ = 2·dy − dx</span>
+
+<span class="kw">A cada passo em x:</span>
+    <span class="kw">se</span> p ≥ <span class="num">0</span>:   y++              <span class="cmt">(reta passou acima — pixel de cima)</span>
+                p ← p + <span class="num">2</span>·(dy − dx)
+
+    <span class="kw">se</span> p &lt; <span class="num">0</span>:   y não muda       <span class="cmt">(reta ainda abaixo — mesmo y)</span>
+                p ← p + <span class="num">2</span>·dy</div>
+
+  <div class="callout">
+    A multiplicação por <code>2·dx</code> (implícita acima) elimina a divisão.
+    Resultado: apenas <strong>somas e subtrações de inteiros</strong>.
+  </div>
+
+  <h4>Generalização para 8 octantes</h4>
+  <div class="code-math">dx = |x2 - x1|,   sx = sinal(x2 - x1)   <span class="cmt">(+1 ou -1)</span>
+dy = |y2 - y1|,   sy = sinal(y2 - y1)   <span class="cmt">(+1 ou -1)</span>
+
+<span class="kw">se</span> |dx| ≥ |dy|:   <span class="grn">eixo dominante = X</span>
+    p₀ = 2·dy − dx
+    loop de 0 até dx:
+        pinta (x, y)
+        <span class="kw">se</span> p ≥ 0:  y += sy;  p += 2·(dy − dx)
+        <span class="kw">senão:</span>               p += 2·dy
+        x += sx         <span class="cmt">← eixo dominante sempre avança</span>
+
+<span class="kw">se</span> |dy| > |dx|:   <span class="grn">eixo dominante = Y  (troca de eixo)</span>
+    p₀ = 2·dx − dy
+    loop de 0 até dy:
+        pinta (x, y)
+        <span class="kw">se</span> p ≥ 0:  x += sx;  p += 2·(dx − dy)
+        <span class="kw">senão:</span>               p += 2·dx
+        y += sy</div>
+
+  <h4>Implementação — bresenham_reta.html (linhas 269–344)</h4>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="lang">javascript</span>
+      <span class="file-ref">rasterizacao/bresenham_reta.html</span>
+    </div>
+    <pre><code class="language-javascript">function bresenhamReta(x1, y1, x2, y2) {
+  let dx = Math.abs(x2 - x1);
+  let dy = Math.abs(y2 - y1);
+  let sx = (x2 >= x1) ? 1 : -1;  // sinal de avanço em x
+  let sy = (y2 >= y1) ? 1 : -1;  // sinal de avanço em y
+
+  let x = x1, y = y1;
+
+  if (dx >= dy) {
+    // Eixo dominante = X
+    let p = 2 * dy - dx;          // parâmetro de decisão inicial
+
+    for (let i = 0; i &lt;= dx; i++) {
+      ctx.fillRect(x, y, 1, 1);   // pinta pixel
+
+      if (p >= 0) {
+        y += sy;                  // y sobe (ou desce)
+        p += 2 * (dy - dx);       // atualização com mudança de y
+      } else {
+        p += 2 * dy;              // atualização sem mudança de y
+      }
+      x += sx;                    // eixo dominante sempre avança
+    }
+  } else {
+    // Eixo dominante = Y (papéis de x e y trocados)
+    let p = 2 * dx - dy;
+
+    for (let i = 0; i &lt;= dy; i++) {
+      ctx.fillRect(x, y, 1, 1);
+
+      if (p >= 0) {
+        x += sx;
+        p += 2 * (dx - dy);
+      } else {
+        p += 2 * dx;
+      }
+      y += sy;
+    }
+  }
+}</code></pre>
+  </div>
+
+  <h4>Comparativo DDA × Bresenham</h4>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th></th><th>DDA</th><th>Bresenham</th></tr></thead>
+      <tbody>
+        <tr><td>Aritmética</td><td>Float (divisão)</td><td><strong>Inteiros puros</strong></td></tr>
+        <tr><td>Operações/passo</td><td>2 somas float + round</td><td>1 soma int + comparação</td></tr>
+        <tr><td>Precisão</td><td>Boa</td><td><strong>Ótima</strong> (sem acúmulo float)</td></tr>
+        <tr><td>Hardware</td><td>Lento</td><td><strong>Ideal para FPGA/GPU</strong></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 1.3 BRESENHAM CÍRCULO --------------------------------------- -->
+  <h3 id="bres-circ">1.3 — Bresenham para Círculos</h3>
+  <p><strong>Arquivo:</strong> <a href="rasterizacao/bresenham_circulo.html" target="_blank"><code>rasterizacao/bresenham_circulo.html</code></a></p>
+
+  <h4>Simetria de 8 octantes</h4>
+  <p>Um círculo possui <strong>simetria octafold</strong>: o arco de 0° a 45° (1º octante)
+  é suficiente para reconstruir os 360°. Para cada ponto <code>(x, y)</code> calculado,
+  geramos <strong>8 pixels</strong> de graça por reflexão.</p>
+
+  <div class="code-math">Dado o ponto (x, y) relativo ao centro (cx, cy):
+
+  <span class="grn">Octante 1:</span> (cx+x, cy−y)      <span class="grn">Octante 5:</span> (cx−x, cy+y)
+  <span class="grn">Octante 2:</span> (cx+y, cy−x)      <span class="grn">Octante 6:</span> (cx−y, cy+x)
+  <span class="grn">Octante 3:</span> (cx+y, cy+x)      <span class="grn">Octante 7:</span> (cx−y, cy−x)
+  <span class="grn">Octante 4:</span> (cx+x, cy+y)      <span class="grn">Octante 8:</span> (cx−x, cy−y)</div>
+
+  <h4>Variável de decisão e derivação</h4>
+  <div class="code-math"><span class="cmt">Interpretação geométrica:  p = x² + y² − r²</span>
+  <span class="kw">Se</span> p &lt; 0: ponto <em>dentro</em> do círculo  → y não muda
+  <span class="kw">Se</span> p ≥ 0: ponto <em>fora</em> do círculo    → y decrementa
+
+<span class="cmt">Parâmetro inicial (topo do círculo, x=0, y=r):</span>
+    <span class="hl">p₀ = 1 − r</span>
+
+<span class="kw">A cada passo</span> (enquanto x &lt; y):
+    x++
+
+    <span class="kw">se</span> p &lt; 0:   y não muda
+                <span class="hl">p ← p + 2·x + 1</span>        <span class="cmt">(Δx² entre passos)</span>
+
+    <span class="kw">se</span> p ≥ 0:   y−−
+                <span class="hl">p ← p + 2·(x − y) + 1</span>  <span class="cmt">(Δx² − Δy² entre passos)</span>
+
+    pinta os 8 octantes</div>
+
+  <h4>Implementação — bresenham_circulo.html (linhas 149–215)</h4>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="lang">javascript</span>
+      <span class="file-ref">rasterizacao/bresenham_circulo.html</span>
+    </div>
+    <pre><code class="language-javascript">function bresenhamCirculo(cx, cy, r, cor) {
+  // Pinta os 8 pixels simétricos de um só passo
+  function pintaOctantes(x, y) {
+    const pts = [
+      [cx + x, cy - y],  [cx + y, cy - x],
+      [cx + y, cy + x],  [cx + x, cy + y],
+      [cx - x, cy + y],  [cx - y, cy + x],
+      [cx - y, cy - x],  [cx - x, cy - y],
+    ];
+    pts.forEach(([px, py]) => ctx.fillRect(px, py, 1, 1));
+  }
+
+  let x = 0;
+  let y = r;
+  let p = 1 - r;         // parâmetro de decisão inicial
+
+  pintaOctantes(x, y);   // pinta ponto inicial (topo)
+
+  while (x &lt; y) {        // percorre até 45° (x == y)
+    x++;
+
+    if (p &lt; 0) {
+      p = p + 2 * x + 1;           // y não muda
+    } else {
+      y--;
+      p = p + 2 * (x - y) + 1;    // y decrementou
+    }
+
+    pintaOctantes(x, y);
+  }
+}</code></pre>
+  </div>
+
+  <hr>
+
+  <!-- PARTE 2 — CURVAS =========================================== -->
+  <h2 id="bezier">Parte 2 — Curvas de Bézier
+    <span class="pill" style="background:#fd79a822;color:#fd79a8">Canvas 2D</span>
+  </h2>
+  <p><strong>Arquivo:</strong> <a href="curvas/bezier.html" target="_blank"><code>curvas/bezier.html</code></a></p>
+
+  <p>Uma curva de Bézier é definida por <strong>pontos de controle</strong> que atraem
+  a curva sem necessariamente tocá-la. A curva passa obrigatoriamente pelos pontos
+  extremos (P₀ e Pₙ) e é contida no <strong>fecho convexo</strong> dos pontos de controle.</p>
+
+  <!-- Bernstein -->
+  <h3 id="bernstein">Fórmula Geral — Polinômios de Bernstein</h3>
+  <p>Para <code>n+1</code> pontos de controle P₀, P₁, …, Pₙ e parâmetro <code>t ∈ [0,1]</code>:</p>
+
+  <div class="code-math">         n
+<span class="hl">B(t)</span> =  Σ  C(n,i) · t<sup>i</sup> · (1−t)<sup>(n−i)</sup> · Pᵢ
+        i=0
+
+<span class="cmt">onde  C(n,i) = n! / (i! · (n−i)!)   (coeficiente binomial)</span>
+
+<span class="kw">Grau 1</span> — linear (2 pontos):
+    B(t) = <span class="hl">(1−t)·P₀ + t·P₁</span>
+
+<span class="kw">Grau 2</span> — quadrática (3 pontos):
+    B(t) = <span class="hl">(1−t)²·P₀ + 2·(1−t)·t·P₁ + t²·P₂</span>
+
+<span class="kw">Grau 3</span> — cúbica (4 pontos):
+    B(t) = <span class="hl">(1−t)³·P₀ + 3·(1−t)²·t·P₁ + 3·(1−t)·t²·P₂ + t³·P₃</span></div>
+
+  <h4>Implementação — bezier.html</h4>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="lang">javascript</span>
+      <span class="file-ref">curvas/bezier.html</span>
+    </div>
+    <pre><code class="language-javascript">// Coeficiente binomial C(n,k) — iterativo, sem fatorial
+function binomial(n, k) {
+  if (k &lt; 0 || k > n) return 0;
+  if (k === 0 || k === n) return 1;
+  let resultado = 1;
+  for (let i = 0; i &lt; k; i++) {
+    resultado = resultado * (n - i) / (i + 1);
+  }
+  return Math.round(resultado);
+}
+
+// Ponto na curva de Bézier dado t ∈ [0,1]
+function bezier(t, pts) {
+  const n = pts.length - 1;   // grau = nº de pontos - 1
+  let bx = 0, by = 0;
+
+  for (let i = 0; i &lt;= n; i++) {
+    // Peso de Bernstein para o i-ésimo ponto de controle
+    const w = binomial(n, i)
+            * Math.pow(t, i)
+            * Math.pow(1 - t, n - i);
+    bx += w * pts[i].x;
+    by += w * pts[i].y;
+  }
+  return { x: bx, y: by };
+}
+
+// Renderiza avaliando 'resolucao' pontos em t ∈ [0,1]
+for (let i = 0; i &lt;= resolucao; i++) {
+  const t = i / resolucao;
+  const p = bezier(t, pontos);
+  ctx.lineTo(p.x, p.y);
+}</code></pre>
+  </div>
+
+  <!-- De Casteljau -->
+  <h3 id="casteljau">Algoritmo de De Casteljau</h3>
+  <p>De Casteljau é uma forma <strong>geométrica</strong> de calcular B(t) — interpola
+  linearmente pares adjacentes de pontos de forma recursiva até restar um único ponto:</p>
+
+  <div class="code-math"><span class="cmt">Nível 0 (original):   P₀    P₁    P₂    P₃</span>
+                          ↓ <span class="kw">lerp(t)</span> entre pares adjacentes
+<span class="cmt">Nível 1:          Q₀=(1-t)P₀+tP₁,  Q₁=(1-t)P₁+tP₂,  Q₂=(1-t)P₂+tP₃</span>
+                          ↓ <span class="kw">lerp(t)</span> entre pares adjacentes
+<span class="cmt">Nível 2:          R₀=(1-t)Q₀+tQ₁,  R₁=(1-t)Q₁+tQ₂</span>
+                          ↓ <span class="kw">lerp(t)</span>
+<span class="cmt">Nível 3:          <span class="hl">B(t) = (1-t)R₀ + t·R₁</span>   ← ponto na curva</span></div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="lang">javascript</span>
+      <span class="file-ref">curvas/bezier.html</span>
+    </div>
+    <pre><code class="language-javascript">function deCasteljau(t, pts) {
+  let atual = pts.slice();
+
+  while (atual.length > 1) {
+    const proximo = [];
+    for (let i = 0; i &lt; atual.length - 1; i++) {
+      // Interpolação linear entre pontos adjacentes
+      proximo.push({
+        x: (1 - t) * atual[i].x + t * atual[i + 1].x,
+        y: (1 - t) * atual[i].y + t * atual[i + 1].y,
+      });
+    }
+    atual = proximo;   // desce um nível
+  }
+
+  return atual[0];   // ponto na curva para este t
+}</code></pre>
+  </div>
+
+  <h4>Interatividade em bezier.html</h4>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Ação do Mouse</th><th>Resultado</th></tr></thead>
+      <tbody>
+        <tr><td>Clique em área vazia</td><td>Adiciona ponto de controle</td></tr>
+        <tr><td>Arrastar ponto</td><td>Move ponto em tempo real</td></tr>
+        <tr><td>Duplo clique em ponto</td><td>Remove o ponto</td></tr>
+        <tr><td>Botão "Animar t"</td><td>Exibe construção De Casteljau animada</td></tr>
+        <tr><td>Slider Resolução</td><td>Controla quantos pontos são avaliados</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <hr>
+
+  <!-- PARTE 3 — TRANSFORMAÇÕES =================================== -->
+  <h2 id="transf">Parte 3 — Transformações 2D
+    <span class="pill" style="background:#a29bfe22;color:#a29bfe">Three.js</span>
+  </h2>
+
+  <div class="callout" style="border-left-color:#a29bfe">
+    <strong>Tecnologia:</strong> Three.js com <code>OrthographicCamera</code>
+    (câmera sem perspectiva, correta para CG 2D).
+  </div>
+
+  <h4>Por que coordenadas homogêneas?</h4>
+  <p>Com matrizes 2×2 conseguimos rotação e escala, mas <strong>não translação</strong>.
+  A solução é adicionar uma coordenada extra <code>w=1</code>:</p>
+
+  <div class="code-math">Ponto 2D normal:    [x, y]
+Ponto homogêneo:    [x, y, <span class="hl">1</span>]   <span class="cmt">(w = 1 para pontos, w = 0 para vetores)</span>
+
+Transformação:   <span class="hl">P' = M · P</span>
+
+<span class="cmt">Com w=1, a translação vira multiplicação de matriz — elegante e unificado.</span></div>
+
+  <!-- 3.1 TRANSLAÇÃO --------------------------------------------- -->
+  <h3 id="translacao">3.1 — Translação</h3>
+  <p><strong>Arquivo:</strong> <a href="transformacoes2d/translacao.html" target="_blank"><code>transformacoes2d/translacao.html</code></a></p>
+
+  <div class="code-math">Matriz T(tx, ty):
+
+    | <span class="hl">1</span>  <span class="hl">0</span>  <span class="hl">tx</span> |   | x |   | x + tx |
+    | <span class="hl">0</span>  <span class="hl">1</span>  <span class="hl">ty</span> | × | y | = | y + ty |
+    | <span class="hl">0</span>  <span class="hl">0</span>  <span class="hl"> 1</span> |   | 1 |   |    1   |</div>
+
+  <div class="code-block">
+    <div class="code-header"><span class="lang">javascript</span><span class="file-ref">Three.js</span></div>
+    <pre><code class="language-javascript">// Three.js representa a translação como posição do objeto:
+mesh.position.x += tx;
+mesh.position.y += ty;
+
+// Equivalente — método nativo:
+mesh.translateX(tx);
+mesh.translateY(ty);</code></pre>
+  </div>
+  <p><strong>Controles:</strong> setas <code>← → ↑ ↓</code> ou botões. Campo "Passo" define a magnitude.</p>
+
+  <!-- 3.2 ROTAÇÃO ------------------------------------------------ -->
+  <h3 id="rotacao">3.2 — Rotação</h3>
+  <p><strong>Arquivo:</strong> <a href="transformacoes2d/rotacao.html" target="_blank"><code>transformacoes2d/rotacao.html</code></a></p>
+
+  <div class="code-math">Rotação ao redor da <span class="grn">ORIGEM</span>  R(θ):
+
+    | <span class="hl">cos θ</span>  <span class="hl">−sin θ</span>  0 |   | x |   | x·cos θ − y·sin θ |
+    | <span class="hl">sin θ</span>   <span class="hl">cos θ</span>  0 | × | y | = | x·sin θ + y·cos θ |
+    |  0       0      1 |   | 1 |   |         1         |
+
+Propriedades:
+  R(θ) é <span class="grn">ortogonal</span>: R⁻¹(θ) = Rᵀ(θ) = R(−θ)
+  Preserva distâncias (isometria)
+  Ângulo positivo = sentido anti-horário</div>
+
+  <h4>Rotação ao redor de ponto arbitrário (px, py)</h4>
+  <div class="code-math">M = <span class="hl">T(px, py)</span> · <span class="hl">R(θ)</span> · <span class="hl">T(−px, −py)</span>
+
+  1. Translada (px,py) para a origem
+  2. Rotaciona
+  3. Translada de volta</div>
+
+  <div class="code-block">
+    <div class="code-header"><span class="lang">javascript</span><span class="file-ref">transformacoes2d/rotacao.html</span></div>
+    <pre><code class="language-javascript">function girar(sentido) {
+  const delta = sentido * passo_em_radianos;
+  const px = pivX, py = pivY;
+
+  // Posição atual em relação ao pivô
+  const dx = mesh.position.x - px;
+  const dy = mesh.position.y - py;
+
+  const cosA = Math.cos(delta);
+  const sinA = Math.sin(delta);
+
+  // Aplica R(θ) à posição relativa ao pivô: T·R·T⁻¹
+  mesh.position.x = px + dx * cosA - dy * sinA;
+  mesh.position.y = py + dx * sinA + dy * cosA;
+
+  // Rotaciona o próprio objeto
+  mesh.rotation.z += delta;
+}</code></pre>
+  </div>
+  <p><strong>Controles:</strong> teclas <code>Q</code> (−θ) e <code>E</code> (+θ).
+  Campos "Piv. X/Y" alteram o pivô.</p>
+
+  <!-- 3.3 ESCALA ------------------------------------------------- -->
+  <h3 id="escala">3.3 — Escala</h3>
+  <p><strong>Arquivo:</strong> <a href="transformacoes2d/escala.html" target="_blank"><code>transformacoes2d/escala.html</code></a></p>
+
+  <div class="code-math">Matriz S(sx, sy):
+
+    | <span class="hl">sx</span>   0   0 |   | x |   | sx · x |
+    |  0  <span class="hl">sy</span>   0 | × | y | = | sy · y |
+    |  0   0   1 |   | 1 |   |    1   |
+
+Casos especiais:
+  sx = sy          → <span class="grn">escala uniforme</span> (preserva forma)
+  sx ≠ sy          → escala não-uniforme (distorce)
+  0 &lt; sx &lt; 1       → reduz horizontalmente
+  sx &gt; 1           → amplia horizontalmente
+  sx = −1          → <span class="hl">reflexão</span> em relação ao eixo Y
+  sy = −1          → <span class="hl">reflexão</span> em relação ao eixo X
+  sx = sy = −1     → rotação de 180° (equivalente)</div>
+
+  <div class="code-block">
+    <div class="code-header"><span class="lang">javascript</span><span class="file-ref">Three.js</span></div>
+    <pre><code class="language-javascript">// Three.js aplica a escala diretamente:
+mesh.scale.set(sx, sy, 1);   // sz=1 → sem escala em Z para 2D
+
+// Escala ao redor de ponto arbitrário: T·S·T⁻¹
+// (implementado manualmente, análogo à rotação com pivô)</code></pre>
+  </div>
+  <p><strong>Controles:</strong> sliders <code>sx</code> / <code>sy</code> (−3 a 3),
+  teclado <code>+/-</code> uniforme, <code>X</code>/<code>Y</code> reflexão.</p>
+
+  <!-- 3.4 COMPOSIÇÃO --------------------------------------------- -->
+  <h3 id="composicao">3.4 — Composição de Transformações</h3>
+  <p><strong>Arquivo:</strong> <a href="transformacoes2d/composicao.html" target="_blank"><code>transformacoes2d/composicao.html</code></a></p>
+
+  <div class="callout orange">
+    <strong>Atenção:</strong> matrizes de transformação não comutam em geral.
+    <code>T·R ≠ R·T</code>. A ordem de composição define o resultado.
+  </div>
+
+  <div class="code-math">Aplicar S, depois R, depois T:
+    <span class="hl">M = T · R · S</span>
+
+A multiplicação lê-se da direita para esquerda:
+    1. S é aplicado primeiro (escala no espaço local)
+    2. R é aplicado depois (rotação)
+    3. T é aplicado por último (translação)
+
+Transformação mundo de um nó filho:
+    <span class="hl">M_mundo = M_pai · M_avô · ... · M_local_filho</span></div>
+
+  <h4>THREE.Group — Sistema Solar em composicao.html</h4>
+  <div class="code-block">
+    <div class="code-header"><span class="lang">javascript</span><span class="file-ref">transformacoes2d/composicao.html</span></div>
+    <pre><code class="language-javascript">// Hierarquia de grupos — cada filho herda as transformações do pai:
+scene
+└── grupoSol                      // rotação própria do sol
+    ├── solMesh
+    └── grupOrbTerra               // orbita da Terra ao redor do Sol
+        └── grupoTerra             // rotação própria da Terra
+            ├── terraMesh
+            └── grupOrbLua         // órbita da Lua ao redor da Terra
+                └── luaMesh        // herda Sol + Terra automaticamente
+
+// Loop de animação — cada grupo gira independentemente:
+solMesh.rotation.z     += velSol;       // sol gira em torno de si
+grupOrbTerra.rotation.z += velTerra;   // Terra orbita o Sol
+grupoTerra.rotation.z   += velPropria; // Terra gira em torno de si
+grupOrbLua.rotation.z   += velLua;     // Lua orbita a Terra
+
+// Posição absoluta da Lua no espaço mundo (produto de todas as matrizes):
+const pos = new THREE.Vector3();
+luaMesh.getWorldPosition(pos);</code></pre>
+  </div>
+
+  <hr>
+
+  <!-- PARTE 4 — VIEWING ========================================== -->
+  <h2 id="viewing">Parte 4 — Viewing 2D
+    <span class="pill" style="background:#a29bfe22;color:#a29bfe">Janela → Viewport</span>
+  </h2>
+  <p><strong>Arquivo:</strong> <a href="viewing/janela_viewport.html" target="_blank"><code>viewing/janela_viewport.html</code></a></p>
+
+  <p>O processo de exibição 2D mapeia coordenadas do <strong>espaço do mundo</strong>
+  (janela) para <strong>pixels da tela</strong> (viewport):</p>
+
+  <div class="code-math">Mundo (World Space)               Tela (Screen Space)
+┌──────────────────┐              ┌──────────────────┐
+│                  │              │                  │
+│   <span class="hl">Janela</span>          │ ──mapeamento──→  │   <span class="grn">Viewport</span>       │
+│  (wx, wy)        │              │   (vx, vy) px    │
+│  coords lógicas  │              │   pixels de tela │
+└──────────────────┘              └──────────────────┘
+   wx ∈ [wxMin, wxMax]               vx ∈ [vxMin, vxMax]
+   wy ∈ [wyMin, wyMax]               vy ∈ [vyMin, vyMax]</div>
+
+  <h3 id="formula-vp">Fórmula de Mapeamento</h3>
+  <div class="code-math">Fatores de escala:
+    <span class="hl">sx = (vxMax − vxMin) / (wxMax − wxMin)</span>
+    <span class="hl">sy = (vyMax − vyMin) / (wyMax − wyMin)</span>
+
+Mapeamento de ponto (xw, yw) → (xv, yv):
+    <span class="hl">xv = vxMin + (xw − wxMin) · sx</span>
+    <span class="hl">yv = vyMin + (yw − wyMin) · sy</span></div>
+
+  <p>Esta é uma <strong>interpolação linear</strong> (lerp) — normaliza o ponto dentro
+  da janela e re-escala para o viewport.</p>
+
+  <h4>Inversão do eixo Y</h4>
+  <p>Em coordenadas matemáticas Y cresce para cima; em canvas Y cresce para baixo.
+  A correção é usar <code>(wyMax − yw)</code> em vez de <code>(yw − wyMin)</code>:</p>
+
+  <div class="code-math">yv = vyMin + <span class="hl">(wyMax − yw)</span> · sy   <span class="cmt">← inversão do eixo Y</span></div>
+
+  <h4>Implementação — janela_viewport.html</h4>
+  <div class="code-block">
+    <div class="code-header"><span class="lang">javascript</span><span class="file-ref">viewing/janela_viewport.html</span></div>
+    <pre><code class="language-javascript">function janelaParaViewport(xw, yw, janela, viewport) {
+  // Fatores de escala: razão viewport / janela
+  const sx = (viewport.xMax - viewport.xMin)
+           / (janela.xMax   - janela.xMin);
+  const sy = (viewport.yMax - viewport.yMin)
+           / (janela.yMax   - janela.yMin);
+
+  const xv = viewport.xMin + (xw - janela.xMin) * sx;
+  // Inverte Y — canvas cresce para baixo, mundo cresce para cima
+  const yv = viewport.yMin + (janela.yMax - yw) * sy;
+
+  return { x: xv, y: yv };
+}</code></pre>
+  </div>
+
+  <h3 id="distorcao">Distorção por proporções diferentes</h3>
+
+  <div class="code-math">Janela:   largura 20 × altura 10   →  razão <span class="hl">2:1</span>
+Viewport: 400px   × 400px         →  razão <span class="hl">1:1</span>
+
+sx = 400/20 = <span class="hl">20</span>    (1 unidade = 20 pixels em X)
+sy = 400/10 = <span class="hl">40</span>    (1 unidade = 40 pixels em Y)
+sx ≠ sy  →  <span class="kw">distorção!</span>
+
+Para preservar: usar  sx = sy = min(sx_calc, sy_calc)</div>
+
+  <p>Em <code>janela_viewport.html</code>, a opção <strong>"Manter proporção"</strong>
+  calcula automaticamente <code>vy_max</code> para evitar distorção.</p>
+
+  <h4>Equivalência com OrthographicCamera</h4>
+  <div class="code-block">
+    <div class="code-header"><span class="lang">javascript</span><span class="file-ref">Three.js</span></div>
+    <pre><code class="language-javascript">// A câmera ortográfica define a JANELA:
+const camera = new THREE.OrthographicCamera(
+  wxMin,   // left
+  wxMax,   // right
+  wyMax,   // top
+  wyMin,   // bottom
+  near, far
+);
+
+// O renderer define o VIEWPORT:
+renderer.setSize(vxMax - vxMin, vyMax - vyMin);
+renderer.setViewport(vxMin, vyMin, vxMax - vxMin, vyMax - vyMin);
+// Three.js aplica a fórmula janelaParaViewport() internamente.</code></pre>
+  </div>
+
+  <hr>
+
+  <!-- REFERÊNCIA RÁPIDA — MATRIZES =============================== -->
+  <h2 id="matrizes">Referência Rápida — Matrizes 3×3</h2>
+  <p>Todas as transformações afins 2D em coordenadas homogêneas:</p>
+
+  <div class="matrix-grid">
+    <div class="matrix-card">
+      <h5>Translação T(tx, ty)</h5>
+      <div class="mat">| 1   0   tx |
+| 0   1   ty |
+| 0   0    1 |</div>
+    </div>
+    <div class="matrix-card">
+      <h5>Escala S(sx, sy)</h5>
+      <div class="mat">| sx   0   0 |
+|  0  sy   0 |
+|  0   0   1 |</div>
+    </div>
+    <div class="matrix-card">
+      <h5>Rotação R(θ)</h5>
+      <div class="mat">| cosθ  −sinθ  0 |
+| sinθ   cosθ  0 |
+|  0      0    1 |</div>
+    </div>
+    <div class="matrix-card">
+      <h5>Reflexão — eixo X</h5>
+      <div class="mat">|  1   0   0 |
+|  0  −1   0 |
+|  0   0   1 |</div>
+    </div>
+    <div class="matrix-card">
+      <h5>Reflexão — eixo Y</h5>
+      <div class="mat">| −1   0   0 |
+|  0   1   0 |
+|  0   0   1 |</div>
+    </div>
+    <div class="matrix-card">
+      <h5>Cisalhamento Sh(shx, shy)</h5>
+      <div class="mat">|   1  shx  0 |
+| shy    1  0 |
+|   0    0  1 |</div>
+    </div>
+    <div class="matrix-card">
+      <h5>Identidade I</h5>
+      <div class="mat">| 1  0  0 |
+| 0  1  0 |
+| 0  0  1 |</div>
+    </div>
+    <div class="matrix-card">
+      <h5>Composição S→R→T</h5>
+      <div class="mat">M = T · R · S
+
+(direita para esquerda:
+ S primeiro, depois R,
+ T por último)</div>
+    </div>
+  </div>
+
+  <h4>Equivalência Three.js</h4>
+  <div class="code-block">
+    <div class="code-header"><span class="lang">javascript</span><span class="file-ref">Three.js</span></div>
+    <pre><code class="language-javascript">// Three.js aplica as transformações nesta ordem (escala → rotação → posição):
+mesh.scale.set(sx, sy, 1);       // S — escala no espaço local
+mesh.rotation.z = theta;          // R — rotação após scale
+mesh.position.set(tx, ty, 0);    // T — translação no espaço pai
+
+// Internamente: matriz 4×4 (world matrix) = T * R * S</code></pre>
+  </div>
+
+  <hr>
+
+  <!-- TABELA DE CONTROLES ======================================== -->
+  <h2 id="controles">Referência de Controles</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Arquivo</th><th>Teclado</th><th>Mouse / Interface</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>dda.html</code></td>
+          <td>—</td>
+          <td>Clique 1× = P1, clique 2× = P2 e executa</td>
+        </tr>
+        <tr>
+          <td><code>bresenham_reta.html</code></td>
+          <td>—</td>
+          <td>Clique 2× P1→P2; botão "Comparar DDA" sobrepõe azul</td>
+        </tr>
+        <tr>
+          <td><code>bresenham_circulo.html</code></td>
+          <td>—</td>
+          <td>Clique 1× = centro, clique 2× = raio pelo comprimento</td>
+        </tr>
+        <tr>
+          <td><code>bezier.html</code></td>
+          <td>—</td>
+          <td>Clique = add, drag = mover, dblclick = remover ponto</td>
+        </tr>
+        <tr>
+          <td><code>translacao.html</code></td>
+          <td><code>← → ↑ ↓</code> mover, <code>R</code> reset</td>
+          <td>Botões e campo "Passo"</td>
+        </tr>
+        <tr>
+          <td><code>rotacao.html</code></td>
+          <td><code>Q</code> recua, <code>E</code> avança, <code>R</code> reset</td>
+          <td>Campos pivô X/Y, botão animar</td>
+        </tr>
+        <tr>
+          <td><code>escala.html</code></td>
+          <td><code>+/-</code> uniforme, <code>X/Y</code> reflexão, <code>R</code> reset</td>
+          <td>Sliders sx e sy independentes</td>
+        </tr>
+        <tr>
+          <td><code>composicao.html</code></td>
+          <td>—</td>
+          <td>Sliders de velocidade orbital e raio de cada astro</td>
+        </tr>
+        <tr>
+          <td><code>janela_viewport.html</code></td>
+          <td>—</td>
+          <td>Inputs wxMin/wxMax/wyMin/wyMax e vxMin/vxMax…</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <hr>
+
+  <!-- GLOSSÁRIO ================================================== -->
+  <h2 id="conceitos">Glossário — Conceitos-Chave</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Conceito</th><th>Definição</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Rasterização</strong></td><td>Converter geometria contínua em pixels discretos numa grade</td></tr>
+        <tr><td><strong>Eixo dominante</strong></td><td>O eixo com maior variação; define o número de passos nos algoritmos de linha</td></tr>
+        <tr><td><strong>Variável de decisão P</strong></td><td>Inteiro acumulado em Bresenham que decide qual pixel é mais próximo da curva ideal</td></tr>
+        <tr><td><strong>Coord. homogêneas</strong></td><td>Adição da coordenada <code>w</code> para representar translação como multiplicação de matriz</td></tr>
+        <tr><td><strong>Composição de matrizes</strong></td><td>Produto de matrizes de transformação; a ordem de aplicação importa</td></tr>
+        <tr><td><strong>Fecho convexo</strong></td><td>Menor polígono convexo contendo todos os pontos de controle; a curva de Bézier está contida nele</td></tr>
+        <tr><td><strong>Parâmetro t</strong></td><td>Valor em [0,1] que percorre a curva de Bézier do ponto inicial (t=0) ao final (t=1)</td></tr>
+        <tr><td><strong>Polinômio de Bernstein</strong></td><td>Peso <code>C(n,i)·tⁱ·(1−t)^(n−i)</code> que pondera cada ponto de controle</td></tr>
+        <tr><td><strong>Janela (Window)</strong></td><td>Região do espaço-mundo que está sendo visualizada (coordenadas lógicas)</td></tr>
+        <tr><td><strong>Viewport</strong></td><td>Região de pixels na tela onde o conteúdo da janela é projetado</td></tr>
+        <tr><td><strong>OrthographicCamera</strong></td><td>Câmera sem perspectiva — objetos não ficam menores com a distância; correta para 2D</td></tr>
+        <tr><td><strong>THREE.Group</strong></td><td>Nó vazio no Three.js que propaga suas transformações para todos os objetos filhos</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <hr>
+
+  <!-- PROGRESSÃO ================================================= -->
+  <h2 id="progressao">Progressão Sugerida de Estudo</h2>
+
+  <div class="progress-flow">
+    <div class="prog-item">
+      <div class="prog-num">1</div>
+      <div class="prog-body">
+        <a href="rasterizacao/dda.html" target="_blank" class="prog-file">rasterizacao/dda.html</a>
+        <span class="prog-note">Ponto de partida — rasterização com ponto flutuante, fácil de entender</span>
+      </div>
+    </div>
+    <div class="prog-arrow">↓ mesmo problema, solução mais eficiente</div>
+    <div class="prog-item">
+      <div class="prog-num">2</div>
+      <div class="prog-body">
+        <a href="rasterizacao/bresenham_reta.html" target="_blank" class="prog-file">rasterizacao/bresenham_reta.html</a>
+        <span class="prog-note">Bresenham — inteiros puros, comparar com DDA no mesmo canvas</span>
+      </div>
+    </div>
+    <div class="prog-arrow">↓ mesmo princípio, geometria circular</div>
+    <div class="prog-item">
+      <div class="prog-num">3</div>
+      <div class="prog-body">
+        <a href="rasterizacao/bresenham_circulo.html" target="_blank" class="prog-file">rasterizacao/bresenham_circulo.html</a>
+        <span class="prog-note">Simetria de 8 octantes — redução de cálculo por reflexão</span>
+      </div>
+    </div>
+    <div class="prog-arrow">↓ saindo do pixel — geometria paramétrica contínua</div>
+    <div class="prog-item">
+      <div class="prog-num">4</div>
+      <div class="prog-body">
+        <a href="curvas/bezier.html" target="_blank" class="prog-file">curvas/bezier.html</a>
+        <span class="prog-note">Bernstein + De Casteljau — arraste pontos para sentir a intuição</span>
+      </div>
+    </div>
+    <div class="prog-arrow">↓ transformações no plano</div>
+    <div class="prog-item">
+      <div class="prog-num">5</div>
+      <div class="prog-body">
+        <a href="transformacoes2d/translacao.html" target="_blank" class="prog-file">transformacoes2d/translacao.html</a>
+        <span class="prog-note">Por que coord. homogêneas? A translação exige a 3ª dimensão</span>
+      </div>
+    </div>
+    <div class="prog-item">
+      <div class="prog-num">6</div>
+      <div class="prog-body">
+        <a href="transformacoes2d/rotacao.html" target="_blank" class="prog-file">transformacoes2d/rotacao.html</a>
+        <span class="prog-note">Rotação com pivô arbitrário — composição T·R·T⁻¹ na prática</span>
+      </div>
+    </div>
+    <div class="prog-item">
+      <div class="prog-num">7</div>
+      <div class="prog-body">
+        <a href="transformacoes2d/escala.html" target="_blank" class="prog-file">transformacoes2d/escala.html</a>
+        <span class="prog-note">Escala uniforme vs. não-uniforme — reflexão como caso especial</span>
+      </div>
+    </div>
+    <div class="prog-arrow">↓ tudo junto — hierarquia de grupos</div>
+    <div class="prog-item">
+      <div class="prog-num">8</div>
+      <div class="prog-body">
+        <a href="transformacoes2d/composicao.html" target="_blank" class="prog-file">transformacoes2d/composicao.html</a>
+        <span class="prog-note">Sistema solar — composição natural via THREE.Group</span>
+      </div>
+    </div>
+    <div class="prog-arrow">↓ como a câmera enxerga o mundo</div>
+    <div class="prog-item">
+      <div class="prog-num">9</div>
+      <div class="prog-body">
+        <a href="viewing/janela_viewport.html" target="_blank" class="prog-file">viewing/janela_viewport.html</a>
+        <span class="prog-note">Mapeamento Janela→Viewport — brinque com as proporções para ver distorção</span>
+      </div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- CRÉDITOS E LICENÇA ========================================= -->
+  <h2 id="creditos">Créditos e Licença</h2>
+
+  <div class="creditos-card">
+
+    <!-- Autor -->
+    <div class="creditos-autor">
+      <div class="creditos-avatar">P</div>
+      <div>
+        <div class="creditos-nome">
+          Pedro
+          <span>Autor e desenvolvedor do material</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Metadados -->
+    <div class="creditos-meta">
+      <div class="chip">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <b>2026</b>
+      </div>
+      <div class="chip">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        <b>Computação Gráfica 2D</b>
+      </div>
+      <div class="chip">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        HTML + JavaScript + Three.js
+      </div>
+    </div>
+
+    <!-- Licença -->
+    <div class="licenca-box">
+      <div class="licenca-titulo">
+        <span class="badge-cc">CC BY 4.0</span>
+        <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">
+          Creative Commons Atribuição 4.0 Internacional
+        </a>
+      </div>
+
+      <div class="licenca-itens">
+        <div class="licenca-item">
+          <span class="ico" style="color:#55efc4">&#10003;</span>
+          <p><b>Compartilhar</b> — copie e redistribua em qualquer formato ou meio</p>
+        </div>
+        <div class="licenca-item">
+          <span class="ico" style="color:#55efc4">&#10003;</span>
+          <p><b>Adaptar</b> — remixe, transforme e crie a partir do material</p>
+        </div>
+        <div class="licenca-item">
+          <span class="ico" style="color:#55efc4">&#10003;</span>
+          <p><b>Uso comercial</b> — para qualquer finalidade</p>
+        </div>
+        <div class="licenca-item">
+          <span class="ico" style="color:#f0c040">&#9998;</span>
+          <p><b>Atribuição obrigatória</b> — crédito ao autor original <b>Pedro</b>, indicando alterações e incluindo link para a licença</p>
+        </div>
+      </div>
+
+      <div class="licenca-aviso">
+        Ao utilizar ou redistribuir este material, inclua: <code>© 2026 Pedro — CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/</code>
+      </div>
+    </div>
+
+  </div>
+
+</main>
+
+<!-- FOOTER ===================================================== -->
+<footer>
+  <span>© 2026 <strong>Pedro Ximenes</strong> — Computação Gráfica 2D</span>
+  <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">CC BY 4.0</a>
+</footer>
+
+<!-- Botão voltar ao topo -->
+<div id="top-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</div>
+
+<script>
+  /* ============================================================
+     HIGHLIGHT.JS — ativa syntax highlighting em todos os blocos
+     ============================================================ */
+  hljs.highlightAll();
+
+  /* ============================================================
+     BARRA DE PROGRESSO DE LEITURA
+     ============================================================ */
+  const progressBar = document.getElementById('progress-bar');
+  window.addEventListener('scroll', () => {
+    const scrollTop  = document.documentElement.scrollTop;
+    const scrollH    = document.documentElement.scrollHeight - window.innerHeight;
+    const pct        = scrollH > 0 ? (scrollTop / scrollH) * 100 : 0;
+    progressBar.style.width = pct + '%';
+
+    // Botão voltar ao topo
+    document.getElementById('top-btn').classList.toggle('visible', scrollTop > 300);
+  });
+
+  /* ============================================================
+     SCROLL SPY — destaca o link ativo no sidebar
+     ============================================================ */
+  const allSections = document.querySelectorAll('h2[id], h3[id]');
+  const navLinks    = document.querySelectorAll('#sidebar .nav-link');
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const id = entry.target.id;
+        navLinks.forEach(link => {
+          link.classList.toggle('active', link.getAttribute('href') === '#' + id);
+        });
+      }
+    });
+  }, { rootMargin: '0px 0px -65% 0px', threshold: 0 });
+
+  allSections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>

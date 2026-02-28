@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Bresenham — Rasterização de Círculos</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #1a1a2e; color: #e0e0e0;
+      display: flex; flex-direction: column; align-items: center; padding: 20px; gap: 16px; }
+    h1 { color: #a29bfe; font-size: 1.6rem; text-align: center; }
+    .subtitle { color: #aaa; font-size: 0.9rem; text-align: center; }
+    .teoria { background: #16213e; border-left: 4px solid #a29bfe; padding: 16px 20px;
+      max-width: 860px; width: 100%; border-radius: 4px; font-size: 0.88rem; line-height: 1.7; }
+    .teoria h2 { color: #a29bfe; margin-bottom: 8px; font-size: 1rem; }
+    .teoria code { background: #0f3460; padding: 2px 6px; border-radius: 3px;
+      font-family: monospace; color: #f0c040; }
+    .controles { display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+      max-width: 860px; width: 100%; background: #16213e; padding: 12px 16px; border-radius: 6px; }
+    .controles label { font-size: 0.85rem; color: #aaa; }
+    .controles input[type="number"] { width: 70px; padding: 4px 6px; background: #0f3460;
+      border: 1px solid #a29bfe44; color: #fff; border-radius: 4px; text-align: center; }
+    button { padding: 6px 14px; background: #a29bfe; color: #000; border: none;
+      border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.85rem; }
+    button:hover { background: #6c5ce7; color: #fff; }
+    button.danger { background: #ff4757; color: #fff; }
+    canvas { border: 2px solid #a29bfe44; cursor: crosshair; border-radius: 4px; background: #0a0a1a; }
+    .log { max-width: 860px; width: 100%; background: #0f3460; padding: 12px 16px; border-radius: 6px;
+      font-family: monospace; font-size: 0.8rem; max-height: 160px; overflow-y: auto; color: #7effd4; }
+    .log span { display: block; border-bottom: 1px solid #ffffff11; padding: 1px 0; }
+    .octantes { display: flex; gap: 8px; flex-wrap: wrap; max-width: 860px; width: 100%; }
+    .octantes > div { background: #16213e; border-radius: 4px; padding: 8px 12px;
+      font-size: 0.8rem; border-left: 3px solid #a29bfe; flex: 1; min-width: 180px; }
+  </style>
+</head>
+<body>
+
+<!--
+  AULA: ALGORITMO DE BRESENHAM PARA CÍRCULOS
+  =====================================================================
+  OBJETIVO:
+    Rasterizar um círculo usando apenas aritmética inteira,
+    aproveitando a SIMETRIA DE 8 OCTANTES.
+
+  IDEIA MATEMÁTICA:
+    A equação do círculo: x² + y² = r²
+
+    Começamos em (0, r) — topo do círculo — e percorremos o 1º octante
+    (de 0° a 45°). Para cada x, decidimos se y permanece igual ou
+    decrementa 1.
+
+    A variável de decisão p determina qual ponto está mais próximo
+    da circunferência real:
+
+      p₀ = 1 - r
+
+    A cada passo:
+      SE p < 0:  p = p + 2*x + 3         (y não muda)
+      SE p ≥ 0:  p = p + 2*(x - y) + 5  (y decrementa)
+
+  SIMETRIA DE 8 OCTANTES:
+    Todo ponto (x, y) no 1º octante gera 8 pontos simétricos:
+    (±x, ±y) e (±y, ±x) — 8 reflexões ao redor do centro.
+    Isso reduz o cálculo em 8×!
+-->
+
+<h1>Bresenham — Rasterização de Círculos</h1>
+<p class="subtitle">Usando a simetria de 8 octantes + aritmética inteira</p>
+
+<div class="teoria">
+  <h2>A simetria de 8 octantes</h2>
+  <p>
+    Um círculo é perfeitamente simétrico: calculamos apenas 1/8 dos pontos
+    e refletimos para obter os outros 7 octantes gratuitamente.
+  </p>
+  <p style="margin-top:8px">
+    <code>p₀ = 1 − r</code><br>
+    <code>se p &lt; 0: p = p + 2x + 3</code><br>
+    <code>se p ≥ 0: p = p + 2(x − y) + 5, y−−</code>
+  </p>
+  <p style="margin-top:8px">
+    Para cada ponto <code>(x, y)</code> calculado, pintamos
+    <strong>8 pixels simétricos</strong> de uma só vez.
+  </p>
+</div>
+
+<div class="octantes">
+  <div>Octante 1: <code>(cx+x, cy−y)</code></div>
+  <div>Octante 2: <code>(cx+y, cy−x)</code></div>
+  <div>Octante 3: <code>(cx+y, cy+x)</code></div>
+  <div>Octante 4: <code>(cx+x, cy+y)</code></div>
+  <div>Octante 5: <code>(cx−x, cy+y)</code></div>
+  <div>Octante 6: <code>(cx−y, cy+x)</code></div>
+  <div>Octante 7: <code>(cx−y, cy−x)</code></div>
+  <div>Octante 8: <code>(cx−x, cy−y)</code></div>
+</div>
+
+<div class="controles">
+  <label>Centro x:</label>
+  <input type="number" id="cx" value="430">
+  <label>y:</label>
+  <input type="number" id="cy" value="200">
+  <label style="margin-left:12px">Raio:</label>
+  <input type="number" id="raio" value="120">
+  <label style="margin-left:12px">Cor:</label>
+  <input type="color" id="cor" value="#a29bfe" style="width:36px;border:none;cursor:pointer">
+  <button onclick="desenhar()">Desenhar Círculo</button>
+  <button onclick="animar()">Animar Crescimento</button>
+  <button class="danger" onclick="limpar()">Limpar</button>
+</div>
+
+<canvas id="canvas" width="860" height="400"></canvas>
+
+<div class="log" id="log">
+  <span style="color:#aaa">— Log do algoritmo —</span>
+</div>
+
+<script>
+/* ===================================================================
+   CONFIGURAÇÃO
+   =================================================================== */
+const canvas = document.getElementById('canvas');
+const ctx    = canvas.getContext('2d');
+let cliques  = [];
+let animId   = null;
+
+function desenharGrade() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = '#ffffff0a'; ctx.lineWidth = 0.5;
+  for (let x = 0; x <= canvas.width; x += 10) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+  }
+  for (let y = 0; y <= canvas.height; y += 10) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+  }
+  ctx.strokeStyle = '#ffffff18'; ctx.lineWidth = 1;
+  for (let x = 0; x <= canvas.width; x += 50) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+  }
+  for (let y = 0; y <= canvas.height; y += 50) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+  }
+}
+
+/* ===================================================================
+   ALGORITMO DE BRESENHAM PARA CÍRCULO
+   ===================================================================
+   Parâmetros: cx, cy = centro; r = raio; cor = cor do pixel
+   =================================================================== */
+function bresenhamCirculo(cx, cy, r, cor, logAtivo = true) {
+  const log = document.getElementById('log');
+  if (logAtivo) {
+    log.innerHTML = '';
+    log.innerHTML += `<span>▶ Centro=(${cx},${cy})  Raio=${r}</span>`;
+  }
+
+  /* ---------------------------------------------------------------
+     pintaOctantes: dado um deslocamento (x, y) relativo ao centro,
+     pinta os 8 pontos simétricos.
+     --------------------------------------------------------------- */
+  function pintaOctantes(x, y) {
+    const p = [
+      [cx + x, cy - y],  // octante 1
+      [cx + y, cy - x],  // octante 2
+      [cx + y, cy + x],  // octante 3
+      [cx + x, cy + y],  // octante 4
+      [cx - x, cy + y],  // octante 5
+      [cx - y, cy + x],  // octante 6
+      [cx - y, cy - x],  // octante 7
+      [cx - x, cy - y],  // octante 8
+    ];
+    ctx.fillStyle = cor;
+    p.forEach(([px, py]) => ctx.fillRect(px, py, 1, 1));
+  }
+
+  // Começamos no topo: x=0, y=r
+  let x = 0;
+  let y = r;
+
+  // Parâmetro de decisão inicial: p = 1 - r
+  let p = 1 - r;
+
+  if (logAtivo) {
+    log.innerHTML += `<span>  p₀ = 1 − ${r} = ${p}</span>`;
+  }
+
+  // Pintamos o ponto inicial
+  pintaOctantes(x, y);
+
+  // Loop: percorre do topo até 45° (x == y no 1º octante)
+  while (x < y) {
+    x++;  // sempre avançamos x
+
+    if (p < 0) {
+      // Reta ainda está dentro do círculo → y não muda
+      p = p + 2 * x + 1;
+      // Fórmula derivada: p_novo = p + 2x_novo + 1
+    } else {
+      // Reta cruzou o círculo → y decrementa
+      y--;
+      p = p + 2 * (x - y) + 1;
+      // Fórmula derivada com y decrementado
+    }
+
+    pintaOctantes(x, y);
+
+    if (logAtivo && x <= 8) {
+      log.innerHTML += `<span>  x=${x}  y=${y}  p=${p}</span>`;
+    }
+  }
+
+  if (logAtivo) {
+    log.innerHTML += `<span style="color:#ffd700">✔ Concluído (1º octante percorrido: ${x} passos)</span>`;
+    log.scrollTop = log.scrollHeight;
+  }
+}
+
+/* ===================================================================
+   ANIMAÇÃO — cresce o raio de 1 até o valor definido
+   =================================================================== */
+function animar() {
+  if (animId) cancelAnimationFrame(animId);
+  const cx   = parseInt(document.getElementById('cx').value);
+  const cy   = parseInt(document.getElementById('cy').value);
+  const rMax = parseInt(document.getElementById('raio').value);
+  const cor  = document.getElementById('cor').value;
+  let r = 1;
+
+  function frame() {
+    desenharGrade();
+    bresenhamCirculo(cx, cy, r, cor, false);
+    // Marca o centro
+    ctx.fillStyle = '#ff4757';
+    ctx.fillRect(cx - 1, cy - 1, 3, 3);
+    if (r < rMax) {
+      r++;
+      animId = requestAnimationFrame(frame);
+    } else {
+      document.getElementById('log').innerHTML =
+        `<span style="color:#ffd700">✔ Animação concluída. Raio final: ${r}</span>`;
+    }
+  }
+  frame();
+}
+
+/* ===================================================================
+   INTERFACE
+   =================================================================== */
+function desenhar() {
+  if (animId) { cancelAnimationFrame(animId); animId = null; }
+  const cx  = parseInt(document.getElementById('cx').value);
+  const cy  = parseInt(document.getElementById('cy').value);
+  const r   = parseInt(document.getElementById('raio').value);
+  const cor = document.getElementById('cor').value;
+
+  desenharGrade();
+  bresenhamCirculo(cx, cy, r, cor, true);
+
+  // Marca o centro com uma cruz
+  ctx.strokeStyle = '#ff4757'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(cx - 6, cy); ctx.lineTo(cx + 6, cy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx, cy - 6); ctx.lineTo(cx, cy + 6); ctx.stroke();
+  ctx.fillStyle = '#aaa'; ctx.font = '11px monospace';
+  ctx.fillText(`C(${cx},${cy}) r=${r}`, cx + 8, cy - 8);
+}
+
+function limpar() {
+  if (animId) { cancelAnimationFrame(animId); animId = null; }
+  cliques = [];
+  desenharGrade();
+  document.getElementById('log').innerHTML = '<span style="color:#aaa">— Limpo —</span>';
+}
+
+/* Clique define centro, segundo clique define raio pelo comprimento */
+canvas.addEventListener('click', function(e) {
+  const rect = canvas.getBoundingClientRect();
+  const mx = Math.round(e.clientX - rect.left);
+  const my = Math.round(e.clientY - rect.top);
+  cliques.push({ x: mx, y: my });
+
+  if (cliques.length === 1) {
+    document.getElementById('cx').value = mx;
+    document.getElementById('cy').value = my;
+    desenharGrade();
+    ctx.fillStyle = '#ff4757';
+    ctx.fillRect(mx - 1, my - 1, 3, 3);
+    document.getElementById('log').innerHTML =
+      '<span style="color:#aaa">Clique novamente para definir o raio...</span>';
+  } else if (cliques.length === 2) {
+    const dx = mx - cliques[0].x;
+    const dy = my - cliques[0].y;
+    const r  = Math.round(Math.sqrt(dx * dx + dy * dy));
+    document.getElementById('raio').value = r;
+    desenhar();
+    cliques = [];
+  }
+});
+
+desenharGrade();
+</script>
+</body>
+</html>

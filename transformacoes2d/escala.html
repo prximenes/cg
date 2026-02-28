@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Escala 2D — Three.js</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #1a1a2e; color: #e0e0e0;
+      display: flex; flex-direction: column; align-items: center; padding: 20px; gap: 16px; }
+    h1 { color: #ffeaa7; font-size: 1.6rem; text-align: center; }
+    .subtitle { color: #aaa; font-size: 0.9rem; text-align: center; }
+    .teoria { background: #16213e; border-left: 4px solid #ffeaa7; padding: 16px 20px;
+      max-width: 900px; width: 100%; border-radius: 4px; font-size: 0.88rem; line-height: 1.7; }
+    .teoria h2 { color: #ffeaa7; margin-bottom: 8px; font-size: 1rem; }
+    .teoria code { background: #0f3460; padding: 2px 6px; border-radius: 3px;
+      font-family: monospace; color: #f0c040; }
+    .matrix { font-family: monospace; background: #0f3460; padding: 10px 16px;
+      border-radius: 4px; display: inline-block; margin: 8px 0; font-size: 0.9rem;
+      color: #f0c040; line-height: 1.8; }
+    .controles { display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+      max-width: 900px; width: 100%; background: #16213e; padding: 12px 16px; border-radius: 6px; }
+    .controles label { font-size: 0.85rem; color: #aaa; }
+    .controles input[type="number"] { width: 65px; padding: 4px 6px; background: #0f3460;
+      border: 1px solid #ffeaa744; color: #fff; border-radius: 4px; text-align: center; }
+    .controles input[type="range"] { width: 140px; accent-color: #ffeaa7; }
+    button { padding: 6px 14px; background: #ffeaa7; color: #000; border: none;
+      border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.85rem; }
+    button:hover { background: #fdcb6e; }
+    button.sec { background: #0f3460; color: #fff; border: 1px solid #ffeaa744; }
+    button.sec:hover { background: #1a4a80; }
+    #renderer-container { border: 2px solid #ffeaa744; border-radius: 4px; }
+    .teclado { background: #16213e; border-radius: 6px; padding: 10px 16px; max-width: 900px;
+      width: 100%; font-size: 0.85rem; display: flex; gap: 10px; flex-wrap: wrap; }
+    .tecla { background: #0f3460; border: 1px solid #ffeaa744; border-radius: 4px;
+      padding: 4px 10px; font-family: monospace; color: #ffeaa7; font-size: 0.8rem; }
+    .estado { background: #0f3460; border-radius: 6px; padding: 10px 16px; max-width: 900px;
+      width: 100%; font-family: monospace; font-size: 0.82rem; color: #7effd4; line-height: 1.8; }
+    .slider-row { display: flex; align-items: center; gap: 8px; }
+    .val-label { min-width: 38px; text-align: right; color: #ffeaa7; font-family: monospace; }
+  </style>
+</head>
+<body>
+
+<!--
+  AULA: ESCALA 2D COM THREE.JS
+  =====================================================================
+  OBJETIVO:
+    Demonstrar a transformação de ESCALA (redimensionamento) em 2D
+    e a matriz correspondente em coordenadas homogêneas.
+
+  TEORIA — MATRIZ DE ESCALA:
+    A escala em torno da ORIGEM com fatores sx (x) e sy (y):
+
+      x' = sx · x
+      y' = sy · y
+
+    Na forma matricial 3×3 (coordenadas homogêneas):
+
+    | sx  0   0 |   | x |   | sx·x |
+    |  0  sy  0 | × | y | = | sy·y |
+    |  0  0   1 |   | 1 |   |  1   |
+
+  TIPOS DE ESCALA:
+    - Uniforme:      sx = sy → preserva proporções
+    - Não-uniforme:  sx ≠ sy → distorce o objeto
+    - Reflexão:      sx=-1 → espelha eixo X; sy=-1 → espelha Y
+    - Escala fracoes: 0 < s < 1 → reduz
+    - Escala > 1:    aumenta
+
+  ESCALA AO REDOR DE PONTO ARBITRÁRIO (px, py):
+    T(px,py) · S(sx,sy) · T(-px,-py)
+
+  THREE.JS:
+    mesh.scale.set(sx, sy, 1)
+    Internamente atualiza a matriz de transformação do objeto.
+-->
+
+<h1>Escala 2D — Matriz de Escala</h1>
+<p class="subtitle">Controle independentemente a escala em X e Y com os sliders</p>
+
+<div class="teoria">
+  <h2>Matriz de Escala S(sx, sy) — coordenadas homogêneas 3×3</h2>
+  <div class="matrix">
+S(sx, sy) = | sx  0   0 |<br>
+            |  0  sy  0 |<br>
+            |  0  0   1 |
+  </div>
+  <p style="margin-top:8px">
+    Quando <code>sx = sy</code>: escala <strong>uniforme</strong> (preserva forma).<br>
+    Quando <code>sx ≠ sy</code>: escala <strong>não-uniforme</strong> (distorce).<br>
+    Quando <code>sx = -1</code> ou <code>sy = -1</code>: <strong>reflexão</strong> (espelhamento).
+  </p>
+</div>
+
+<div class="controles">
+  <div class="slider-row">
+    <label>sx:</label>
+    <input type="range" id="sliderSx" min="-3" max="3" step="0.05" value="1" oninput="onSlider()">
+    <span class="val-label" id="valSx">1.00</span>
+  </div>
+  <div class="slider-row">
+    <label>sy:</label>
+    <input type="range" id="sliderSy" min="-3" max="3" step="0.05" value="1" oninput="onSlider()">
+    <span class="val-label" id="valSy">1.00</span>
+  </div>
+  <button onclick="escalaUniforme(1.2)">+ Aumentar</button>
+  <button onclick="escalaUniforme(0.8)">− Reduzir</button>
+  <button onclick="reflexaoX()">Reflexão X</button>
+  <button onclick="reflexaoY()">Reflexão Y</button>
+  <button class="sec" onclick="reset()">Resetar</button>
+</div>
+
+<div class="teclado">
+  <strong style="color:#aaa">Teclado:</strong>
+  <span class="tecla">+/-</span> Escala uniforme &nbsp;
+  <span class="tecla">X</span> Reflexão X &nbsp;
+  <span class="tecla">Y</span> Reflexão Y &nbsp;
+  <span class="tecla">R</span> Resetar
+</div>
+
+<div id="renderer-container"></div>
+
+<div class="estado" id="estado">scale: (1.00, 1.00)</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ===================================================================
+   CONFIGURAÇÃO
+   =================================================================== */
+const W = 900, H = 440;
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(W, H);
+renderer.setClearColor(0x0a0a1a);
+document.getElementById('renderer-container').appendChild(renderer.domElement);
+
+const camera = new THREE.OrthographicCamera(-W/2, W/2, H/2, -H/2, -1000, 1000);
+camera.position.z = 1;
+const scene = new THREE.Scene();
+
+/* Grade e eixos */
+const matGrade = new THREE.LineBasicMaterial({ color: 0xffffff08 });
+for (let x = -W/2; x <= W/2; x += 50) {
+  const g = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(x, -H/2, 0), new THREE.Vector3(x, H/2, 0)
+  ]);
+  scene.add(new THREE.Line(g, matGrade));
+}
+for (let y = -H/2; y <= H/2; y += 50) {
+  const g = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(-W/2, y, 0), new THREE.Vector3(W/2, y, 0)
+  ]);
+  scene.add(new THREE.Line(g, matGrade));
+}
+scene.add(new THREE.Line(
+  new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-W/2,0,0), new THREE.Vector3(W/2,0,0)]),
+  new THREE.LineBasicMaterial({ color: 0xff4757 })
+));
+scene.add(new THREE.Line(
+  new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,-H/2,0), new THREE.Vector3(0,H/2,0)]),
+  new THREE.LineBasicMaterial({ color: 0x74b9ff })
+));
+
+/* ===================================================================
+   POLÍGONO — quadrado com diagonal para ver distorção
+   =================================================================== */
+const forma = new THREE.Shape();
+const L = 70;  // metade do lado
+forma.moveTo(-L, -L);
+forma.lineTo( L, -L);
+forma.lineTo( L,  L);
+forma.lineTo(-L,  L);
+forma.lineTo(-L, -L);
+
+const geo = new THREE.ShapeGeometry(forma);
+const mat = new THREE.MeshBasicMaterial({ color: 0xffeaa7, transparent: true, opacity: 0.75 });
+const poligono = new THREE.Mesh(geo, mat);
+poligono.add(new THREE.LineSegments(
+  new THREE.EdgesGeometry(geo),
+  new THREE.LineBasicMaterial({ color: 0xffffff })
+));
+
+// Diagonal para visualizar distorção não-uniforme
+const diagGeo = new THREE.BufferGeometry().setFromPoints([
+  new THREE.Vector3(-L, -L, 0), new THREE.Vector3(L, L, 0)
+]);
+poligono.add(new THREE.Line(diagGeo, new THREE.LineBasicMaterial({ color: 0xff7675 })));
+
+scene.add(poligono);
+
+/* Ghost — contorno original para referência */
+const ghostMat = new THREE.LineBasicMaterial({ color: 0xffeaa744 });
+const ghostGeo = new THREE.EdgesGeometry(geo);
+scene.add(new THREE.LineSegments(ghostGeo, ghostMat));
+
+/* ===================================================================
+   LÓGICA DE ESCALA
+   =================================================================== */
+
+/**
+ * aplicarEscala(sx, sy) — define a escala do polígono.
+ *
+ * No Three.js: mesh.scale.set(sx, sy, sz)
+ * Isso é equivalente à matriz:
+ *   | sx  0  0 |
+ *   |  0 sy  0 |
+ *   |  0  0  1 |
+ */
+function aplicarEscala(sx, sy) {
+  // Clamp para evitar divisão por zero
+  sx = Math.abs(sx) < 0.01 ? 0.01 : sx;
+  sy = Math.abs(sy) < 0.01 ? 0.01 : sy;
+
+  poligono.scale.set(sx, sy, 1);
+
+  // Sincroniza sliders
+  document.getElementById('sliderSx').value = sx;
+  document.getElementById('sliderSy').value = sy;
+  document.getElementById('valSx').textContent = sx.toFixed(2);
+  document.getElementById('valSy').textContent = sy.toFixed(2);
+
+  atualizarEstado();
+  renderizar();
+}
+
+function onSlider() {
+  const sx = parseFloat(document.getElementById('sliderSx').value);
+  const sy = parseFloat(document.getElementById('sliderSy').value);
+  document.getElementById('valSx').textContent = sx.toFixed(2);
+  document.getElementById('valSy').textContent = sy.toFixed(2);
+  poligono.scale.set(sx, sy, 1);
+  atualizarEstado();
+  renderizar();
+}
+
+function escalaUniforme(fator) {
+  const sx = poligono.scale.x * fator;
+  const sy = poligono.scale.y * fator;
+  aplicarEscala(sx, sy);
+}
+
+function reflexaoX() {
+  // Inverter sinal de sx = reflexão em relação ao eixo Y
+  aplicarEscala(-poligono.scale.x, poligono.scale.y);
+}
+
+function reflexaoY() {
+  // Inverter sinal de sy = reflexão em relação ao eixo X
+  aplicarEscala(poligono.scale.x, -poligono.scale.y);
+}
+
+function reset() {
+  aplicarEscala(1, 1);
+}
+
+function atualizarEstado() {
+  const sx = poligono.scale.x.toFixed(3);
+  const sy = poligono.scale.y.toFixed(3);
+  document.getElementById('estado').innerHTML =
+    `scale: (${sx}, ${sy})<br>` +
+    `<span style="color:#aaa">S(sx,sy) = | ${sx}   0    0 | &nbsp; 0   ${sy}   0 | &nbsp; 0    0    1 |</span>`;
+}
+
+/* ===================================================================
+   TECLADO
+   =================================================================== */
+document.addEventListener('keydown', function(e) {
+  switch(e.key) {
+    case '+': case '=': escalaUniforme(1.1); break;
+    case '-': case '_': escalaUniforme(0.9); break;
+    case 'x': case 'X': reflexaoX(); break;
+    case 'y': case 'Y': reflexaoY(); break;
+    case 'r': case 'R': reset(); break;
+  }
+});
+
+function renderizar() { renderer.render(scene, camera); }
+renderizar();
+atualizarEstado();
+</script>
+</body>
+</html>
