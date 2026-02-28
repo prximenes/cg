@@ -5,6 +5,28 @@ Cada arquivo HTML é independente, autocontido e funcional com Live Server.
 
 ---
 
+## Como Rodar
+
+Cada arquivo HTML funciona diretamente no navegador — sem instalação de dependências.
+
+**Opção 1 — VS Code + Live Server (recomendado)**
+1. Abra a pasta `cg/` no VS Code.
+2. Instale a extensão **Live Server** (Ritwick Dey).
+3. Clique com o botão direito em qualquer `.html` → **Open with Live Server**.
+
+**Opção 2 — Python (qualquer terminal)**
+```bash
+# Python 3
+cd caminho/para/cg
+python -m http.server 8080
+# Abra http://localhost:8080 no navegador
+```
+
+**Opção 3 — Abrir direto no navegador**
+Basta dar dois cliques no arquivo `.html`. Os arquivos de `rasterizacao/` e `curvas/` funcionam sem servidor. Os de `transformacoes2d/` e `viewing/` carregam o Three.js via CDN — portanto precisam de conexão com a internet (ou de um servidor local para evitar restrições CORS).
+
+---
+
 ## Estrutura do Projeto
 
 ```
