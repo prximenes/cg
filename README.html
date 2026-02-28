@@ -845,31 +845,11 @@
       </div>
     </div>
     <!-- COMO RODAR =============================================== -->
-    <h3 style="margin-top:28px">Como Rodar</h3>
-    <div class="callout green" style="margin-bottom:0">
-      Cada arquivo HTML funciona no navegador sem instalação — escolha uma das opções abaixo.
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Opção</th><th>Como fazer</th><th>Observação</th></tr></thead>
-        <tbody>
-          <tr>
-            <td><strong>VS Code + Live Server</strong> <span class="badge" style="background:#00d4ff22;color:#00d4ff">Recomendado</span></td>
-            <td>Instale a extensão <em>Live Server</em> → botão direito no <code>.html</code> → <em>Open with Live Server</em></td>
-            <td>Recarrega automaticamente ao salvar</td>
-          </tr>
-          <tr>
-            <td><strong>Python</strong></td>
-            <td><code>python -m http.server 8080</code> na pasta <code>cg/</code>, abra <code>http://localhost:8080</code></td>
-            <td>Python 3 já incluído no sistema</td>
-          </tr>
-          <tr>
-            <td><strong>Direto no navegador</strong></td>
-            <td>Dois cliques no arquivo <code>.html</code></td>
-            <td><code>rasterizacao/</code> e <code>curvas/</code>: OK. <code>transformacoes2d/</code> e <code>viewing/</code>: precisa de internet (Three.js via CDN)</td>
-          </tr>
-        </tbody>
-      </table>
+    <div class="callout green" style="margin-top:16px">
+      <strong>Como rodar:</strong> abra qualquer <code>.html</code> direto no navegador,
+      ou use <strong>Live Server</strong> no VS Code, ou execute
+      <code>python -m http.server 8080</code> na pasta <code>cg/</code>.
+      Os arquivos de <code>transformacoes2d/</code> e <code>viewing/</code> precisam de internet (Three.js via CDN).
     </div>
   </section>
 
@@ -878,24 +858,28 @@
     <h3>Estrutura do Projeto</h3>
 
     <div class="filetree">
-<span class="dir">cg/</span>
- ├── <span class="file">README.html</span>               <span class="note">← esta documentação</span>
- ├── <span class="dir">rasterizacao/</span>
- │     ├── <span class="file">dda.html</span>              <span class="note">← Algoritmo DDA</span>
- │     ├── <span class="file">bresenham_reta.html</span>   <span class="note">← Bresenham para retas</span>
- │     └── <span class="file">bresenham_circulo.html</span><span class="note">← Bresenham para círculos</span>
- │
- ├── <span class="dir">curvas/</span>
- │     └── <span class="file">bezier.html</span>           <span class="note">← Curvas de Bézier interativas</span>
- │
- ├── <span class="dir">transformacoes2d/</span>
- │     ├── <span class="file">translacao.html</span>       <span class="note">← Translação (coord. homogêneas)</span>
- │     ├── <span class="file">rotacao.html</span>          <span class="note">← Rotação 2D</span>
- │     ├── <span class="file">escala.html</span>           <span class="note">← Escala e reflexão</span>
- │     └── <span class="file">composicao.html</span>       <span class="note">← Composição / THREE.Group</span>
- │
- └── <span class="dir">viewing/</span>
-       └── <span class="file">janela_viewport.html</span>  <span class="note">← Transformação Janela → Viewport</span></div>
+      <pre>
+      cg/
+      ├── README.html               ← esta documentação
+      ├── rasterizacao/
+      │     ├── dda.html            ← Algoritmo DDA
+      │     ├── bresenham_reta.html ← Bresenham para retas
+      │     └── bresenham_circulo.html ← Bresenham para círculos
+      │
+      ├── curvas/
+      │     └── bezier.html         ← Curvas de Bézier interativas
+      │
+      ├── transformacoes2d/
+      │     ├── translacao.html     ← Translação (coord. homogêneas)
+      │     ├── rotacao.html        ← Rotação 2D
+      │     ├── escala.html         ← Escala e reflexão
+      │     └── composicao.html     ← Composição / THREE.Group
+      │
+      └── viewing/
+            └── janela_viewport.html ← Transformação Janela → Viewport
+      </pre>
+    </div>
+
 
     <div class="cards">
       <a href="rasterizacao/dda.html" target="_blank" class="card">
@@ -1827,8 +1811,8 @@ mesh.position.set(tx, ty, 0);    // T — translação no espaço pai
       <div class="creditos-avatar">P</div>
       <div>
         <div class="creditos-nome">
-          Pedro
-          <span>Autor e desenvolvedor do material</span>
+          Pedro Ximenes
+          <span>Autor e desenvolvedor do material &nbsp;·&nbsp; <a href="https://pedrorafael.dev/" target="_blank" style="color:var(--accent)">pedrorafael.dev</a></span>
         </div>
       </div>
     </div>
@@ -1873,12 +1857,12 @@ mesh.position.set(tx, ty, 0);    // T — translação no espaço pai
         </div>
         <div class="licenca-item">
           <span class="ico" style="color:#f0c040">&#9998;</span>
-          <p><b>Atribuição obrigatória</b> — crédito ao autor original <b>Pedro</b>, indicando alterações e incluindo link para a licença</p>
+          <p><b>Atribuição obrigatória</b> — crédito ao autor original <b>Pedro Ximenes</b>, indicando alterações e incluindo link para a licença</p>
         </div>
       </div>
 
       <div class="licenca-aviso">
-        Ao utilizar ou redistribuir este material, inclua: <code>© 2026 Pedro — CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/</code>
+        Ao utilizar ou redistribuir este material, inclua: <code>© 2026 Pedro Ximenes — CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/</code>
       </div>
     </div>
 

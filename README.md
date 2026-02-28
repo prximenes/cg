@@ -876,7 +876,7 @@ de cada arquivo detalham a matemática específica daquele algoritmo.
 
 ## Créditos
 
-**Autor:** Pedro
+**Autor:** Pedro Ximenes — [pedrorafael.dev](https://pedrorafael.dev/)
 **Ano:** 2026
 **Disciplina:** Computação Gráfica 2D
 
