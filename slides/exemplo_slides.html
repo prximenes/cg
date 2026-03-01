@@ -1,0 +1,100 @@
+<!-- <!DOCTYPE html>
+<html>
+  <head>
+    <title>Hello, World!</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <canvas id="tela" width="600" height="300"></canvas>
+
+    <script>
+      // Obtém a referência ao elemento canvas pelo id
+      const canvas = document.getElementById("tela");
+
+      // Abre o contexto 2D — é por ele que todos os desenhos são feitos
+      const ctx = canvas.getContext("2d");
+
+      // --- RETÂNGULO ---
+
+      // Define a cor de preenchimento para os próximos desenhos
+      ctx.fillStyle = "steelblue";
+
+      // Desenha um retângulo preenchido:
+      // fillRect(x, y, largura, altura)
+      // x=40, y=30 → canto superior esquerdo
+      // largura=120, altura=80
+      ctx.fillRect(40, 30, 120, 80);
+
+      let x = 0;
+      function desenhar() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillRect(x, 40, 40, 40);
+      x += 2;
+      requestAnimationFrame(desenhar);
+      }
+      desenhar();
+    </script>
+      
+  </body>
+</html> -->
+
+<!-- exemplo usando Three.js para renderizar um cubo 3D simples. -->
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Hello, World!</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  </head>
+  <body>
+    <script>
+        // Cena: contêiner que agrupa todos os objetos, luzes e câmeras do mundo 3D
+        const scene = new THREE.Scene();
+
+        // Câmera perspectiva: simula a visão humana (objetos distantes parecem menores)
+        // PerspectiveCamera(fov, aspect, near, far)
+        //   fov    = 75°  → campo de visão vertical (ângulo de abertura da câmera)
+        //   aspect = 1.6  → proporção largura/altura (≈ 16:10)
+        //   near   = 0.1  → distância mínima de renderização (objetos mais perto são cortados)
+        //   far    = 1000 → distância máxima de renderização (objetos mais longe são cortados)
+        const camera = new THREE.PerspectiveCamera(75, 1.6, 0.1, 1000);
+
+        // Renderer WebGL: responsável por desenhar a cena usando a GPU via WebGL
+        const renderer = new THREE.WebGLRenderer();
+
+        // Define o tamanho do canvas de saída (ocupa a janela inteira)
+        renderer.setSize(window.innerWidth, window.innerHeight);
+
+        // Injeta o <canvas> criado pelo renderer no <body> da página
+        document.body.appendChild(renderer.domElement);
+
+        // Geometria: define a forma do objeto — BoxGeometry() cria um cubo 1x1x1
+        const geometry = new THREE.BoxGeometry();
+
+        // Material: define a aparência da superfície
+        // MeshBasicMaterial não reage à luz — a cor 0x44aa88 (verde-água) é sempre a mesma
+        const material = new THREE.MeshBasicMaterial({ color: 0x44aa88 });
+
+        // Mesh: combina geometria + material para formar um objeto renderizável
+        const cube = new THREE.Mesh(geometry, material);
+
+        // Adiciona o cubo à cena para que seja renderizado
+        scene.add(cube);
+
+        // Posiciona a câmera 3 unidades para frente no eixo Z
+        // O cubo está na origem (0,0,0) — sem esse recuo, a câmera ficaria dentro dele
+        camera.position.z = 3;
+
+        // Renderiza um único frame estático: percorre a cena com a câmera e gera a imagem
+        renderer.render(scene, camera);
+
+        function animar() {
+        cube.rotation.y += 0.01
+        renderer.render(scene, camera);
+        requestAnimationFrame(animar);
+        }
+        animar();
+
+    </script>
+  </body>
+</html>
