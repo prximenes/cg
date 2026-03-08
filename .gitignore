@@ -1,0 +1,31 @@
+*.aux
+*.log
+*.nav
+*.out
+*.snm
+*.toc
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+
+# Ignore the PDF output file
+*.pdf
+# Ignore the generated .bbl and .blg files
+*.bbl
+*.blg
+# Ignore the generated .idx and .ind files
+*.idx
+*.ind
+# Ignore the generated .lof and .lot files
+*.lof
+*.lot
+# Ignore the generated .brf file
+*.brf
+# Ignore the generated .run.xml file
+*.run.xml
+# Ignore the generated .acn and .acr files
+*.acn
+*.acr
+
+# Ignore Aulas directory
+Aulas/
