@@ -22,17 +22,6 @@ function desenhaCasa(cor) {
   ctx.stroke();
 }
 
-// Casa original (fantasma)
-ctx.globalAlpha = 0.3;
-ctx.strokeStyle = '#999';
-desenhaCasa('lightgray');
-ctx.globalAlpha = 1;
-
-// Ponto fixo
-ctx.fillStyle = 'red';
-ctx.beginPath(); ctx.arc(110, 50, 4, 0, Math.PI * 2); ctx.fill();
-ctx.fillText('ponto fixo (110, 50)', 118, 54);
-
 // Escala com ponto fixo — de BAIXO para CIMA:
 ctx.setTransform(1, 0, 0, 1, 0, 0);
 ctx.translate(110, 50);     // 3a op: volta
@@ -40,6 +29,16 @@ ctx.scale(2, 2);            // 2a op: escala
 ctx.translate(-110, -50);   // 1a op: leva à origem
 ctx.strokeStyle = 'black';
 desenhaCasa('tomato');
+
+// Casa original (por cima, para comparar)
+ctx.setTransform(1, 0, 0, 1, 0, 0);
+ctx.strokeStyle = '#999';
+desenhaCasa('lightgray');
+
+// Ponto fixo
+ctx.fillStyle = 'red';
+ctx.beginPath(); ctx.arc(110, 50, 4, 0, Math.PI * 2); ctx.fill();
+ctx.fillText('ponto fixo (110, 50)', 118, 54);
 
 document.getElementById('codigo').textContent =
 `ctx.setTransform(1, 0, 0, 1, 0, 0);

@@ -13,7 +13,7 @@ Todos são HTML standalone — abrir direto no navegador.
 | 4 | `04-reset-acumulacao.html` | **A Importância do Reset da Matriz** — Dois canvas: sem reset (acumula) vs com reset. |
 | 5 | `05-escala-ponto-fixo.html` | **Ordem das Transformações** — Escala com ponto fixo: translate→scale→translate. |
 | 6 | `06-rotacao-ponto-fixo.html` | **Rotação com Ponto Arbitrário + Translação** — Botões para comparar ordem correta vs errada. |
-| 7 | `07-exemplo-completo.html` | **Exemplo Completo** — Código idêntico ao do slide (casa com escala ponto fixo). |
+| 7 | `07-exemplo-completo.html` | **Composição com Matrizes** — Composição T · R · S numa casa, mostra equivalência com WebGL. |
 
 ## Ordem durante a aula
 
@@ -23,4 +23,4 @@ Todos são HTML standalone — abrir direto no navegador.
 4. **`04-reset-acumulacao`** no slide "Reset da Matriz" — clicar Iniciar e ver a escala explodir no canvas esquerdo
 5. **`05-escala-ponto-fixo`** no slide "De Baixo para Cima" — mostra o padrão translate→scale→translate
 6. **`06-rotacao-ponto-fixo`** no slide "Rotação + Translação" — alternar entre ordem correta e errada
-7. **`07-exemplo-completo`** no slide "Exemplo Completo" — código idêntico ao slide, copiar e colar
+7. **`07-exemplo-completo`** no slide "Composição com Matrizes no WebGL" — M = T · R · S aplicado numa casa, com código WebGL equivalente no `<pre>`
