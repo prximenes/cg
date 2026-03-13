@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>01 — ctx.translate</title>
+</head>
+<body>
+<h3>ctx.translate(tx, ty)</h3>
+<canvas id="c" width="600" height="300" style="border:1px solid #ccc"></canvas>
+<script>
+const ctx = document.getElementById('c').getContext('2d');
+
+// Retângulo original em (0,0)
+ctx.fillStyle = 'gray';
+ctx.fillRect(0, 0, 80, 60);
+ctx.fillText('original (0,0)', 0, -4);
+
+// Translada o sistema de coordenadas
+ctx.translate(200, 100);
+
+// Mesmo fillRect(0,0,...) agora aparece em (200, 100)
+ctx.fillStyle = 'red';
+ctx.fillRect(0, 0, 80, 60);
+ctx.fillText('após translate(200,100)', 0, -4);
+</script>
+</body>
+</html>

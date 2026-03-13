@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>04 — Problema da acumulação</title>
+</head>
+<body>
+<h3>Acumulação de transformações em animação</h3>
+<p>Esquerda: SEM reset (escala acumula!) &nbsp; Direita: COM reset</p>
+<canvas id="c1" width="300" height="250" style="border:1px solid red"></canvas>
+<canvas id="c2" width="300" height="250" style="border:1px solid green"></canvas>
+<p id="info">Frame: 0</p>
+<button onclick="iniciar()">Iniciar</button>
+<button onclick="parar()">Parar</button>
+
+<script>
+const ctx1 = document.getElementById('c1').getContext('2d');
+const ctx2 = document.getElementById('c2').getContext('2d');
+let animId = null, frame = 0;
+
+function desenhaCasa(ctx) {
+  ctx.fillStyle = 'steelblue';
+  ctx.fillRect(110, 130, 80, 60);
+  ctx.beginPath();
+  ctx.moveTo(100, 130); ctx.lineTo(150, 80); ctx.lineTo(200, 130);
+  ctx.fillStyle = 'tomato';
+  ctx.fill();
+}
+
+function draw() {
+  frame++;
+
+  // SEM reset — scale acumula!
+  ctx1.clearRect(-9999, -9999, 99999, 99999);
+  ctx1.scale(1.01, 1.01);
+  desenhaCasa(ctx1);
+
+  // COM reset — scale aplicado uma vez só
+  ctx2.setTransform(1, 0, 0, 1, 0, 0);
+  ctx2.clearRect(0, 0, 300, 250);
+  ctx2.scale(1.01, 1.01);
+  desenhaCasa(ctx2);
+
+  document.getElementById('info').textContent =
+    'Frame: ' + frame + ' | Escala acumulada (esq): ' + Math.pow(1.01, frame).toFixed(2) + 'x';
+  animId = requestAnimationFrame(draw);
+}
+
+function iniciar() { if (!animId) animId = requestAnimationFrame(draw); }
+function parar() { cancelAnimationFrame(animId); animId = null; }
+</script>
+</body>
+</html>

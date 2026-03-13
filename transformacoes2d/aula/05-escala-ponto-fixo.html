@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>05 — Escala com ponto fixo</title>
+</head>
+<body>
+<h3>Escala com ponto fixo (110, 50) — Leitura de baixo para cima</h3>
+<canvas id="c" width="600" height="300" style="border:1px solid #ccc"></canvas>
+<pre id="codigo"></pre>
+
+<script>
+const ctx = document.getElementById('c').getContext('2d');
+
+function desenhaCasa(cor) {
+  ctx.beginPath();
+  ctx.moveTo(100, 100); ctx.lineTo(120, 100);
+  ctx.lineTo(120, 50);  ctx.lineTo(110, 30);
+  ctx.lineTo(100, 50);  ctx.closePath();
+  ctx.fillStyle = cor;
+  ctx.fill();
+  ctx.stroke();
+}
+
+// Casa original (fantasma)
+ctx.globalAlpha = 0.3;
+ctx.strokeStyle = '#999';
+desenhaCasa('lightgray');
+ctx.globalAlpha = 1;
+
+// Ponto fixo
+ctx.fillStyle = 'red';
+ctx.beginPath(); ctx.arc(110, 50, 4, 0, Math.PI * 2); ctx.fill();
+ctx.fillText('ponto fixo (110, 50)', 118, 54);
+
+// Escala com ponto fixo — de BAIXO para CIMA:
+ctx.setTransform(1, 0, 0, 1, 0, 0);
+ctx.translate(110, 50);     // 3a op: volta
+ctx.scale(2, 2);            // 2a op: escala
+ctx.translate(-110, -50);   // 1a op: leva à origem
+ctx.strokeStyle = 'black';
+desenhaCasa('tomato');
+
+document.getElementById('codigo').textContent =
+`ctx.setTransform(1, 0, 0, 1, 0, 0);
+ctx.translate(110, 50);     // 3a op: volta
+ctx.scale(2, 2);            // 2a op: escala
+ctx.translate(-110, -50);   // 1a op: leva à origem
+desenhaCasa();`;
+</script>
+</body>
+</html>

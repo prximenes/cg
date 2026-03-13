@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>03 — ctx.save / ctx.restore</title>
+</head>
+<body>
+<h3>ctx.save() / ctx.restore()</h3>
+<canvas id="c" width="600" height="300" style="border:1px solid #ccc"></canvas>
+<script>
+const ctx = document.getElementById('c').getContext('2d');
+
+ctx.save();                    // salva estado (identidade)
+
+ctx.translate(150, 120);
+ctx.rotate(Math.PI / 4);      // 45 graus
+
+ctx.fillStyle = 'blue';
+ctx.fillRect(0, 0, 80, 50);   // retângulo transformado
+ctx.fillText('transformado', 0, -6);
+
+ctx.restore();                 // volta à identidade!
+
+ctx.fillStyle = 'red';
+ctx.fillRect(350, 80, 80, 50); // sem transformação
+ctx.fillText('após restore (sem transformação)', 350, 74);
+</script>
+</body>
+</html>

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>06 — Rotação com ponto fixo + translação</title>
+</head>
+<body>
+<h3>Rotação 90° ao redor de (110, 50) + translação tx=50</h3>
+<p>
+  <button onclick="mostrar('certa')">Ordem CORRETA</button>
+  <button onclick="mostrar('errada')">Ordem ERRADA</button>
+</p>
+<canvas id="c" width="600" height="300" style="border:1px solid #ccc"></canvas>
+<pre id="codigo"></pre>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+function desenhaCasa(cor) {
+  ctx.beginPath();
+  ctx.moveTo(100, 100); ctx.lineTo(120, 100);
+  ctx.lineTo(120, 50);  ctx.lineTo(110, 30);
+  ctx.lineTo(100, 50);  ctx.closePath();
+  ctx.fillStyle = cor;
+  ctx.fill();
+  ctx.stroke();
+}
+
+function mostrar(modo) {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, 600, 300);
+
+  // Fantasma original
+  ctx.globalAlpha = 0.3;
+  ctx.strokeStyle = '#999';
+  desenhaCasa('lightgray');
+  ctx.globalAlpha = 1;
+
+  // Ponto fixo
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = 'red';
+  ctx.beginPath(); ctx.arc(110, 50, 4, 0, Math.PI * 2); ctx.fill();
+
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  let codigo;
+
+  if (modo === 'certa') {
+    ctx.translate(50, 0);              // 4a op: translação
+    ctx.translate(110, 50);            // 3a op: volta
+    ctx.rotate(Math.PI / 2);           // 2a op: rotação
+    ctx.translate(-110, -50);          // 1a op: leva à origem
+    ctx.strokeStyle = 'black';
+    desenhaCasa('steelblue');
+    codigo =
+`// ORDEM CORRETA
+ctx.translate(50, 0);         // 4a op
+ctx.translate(110, 50);       // 3a op
+ctx.rotate(Math.PI / 2);     // 2a op
+ctx.translate(-110, -50);    // 1a op
+desenhaCasa();`;
+  } else {
+    ctx.translate(110, 50);            // 3a op
+    ctx.rotate(Math.PI / 2);           // 2a op
+    ctx.translate(-110, -50);          // 1a op
+    ctx.translate(50, 0);              // translate no lugar errado!
+    ctx.strokeStyle = 'black';
+    desenhaCasa('orangered');
+    codigo =
+`// ORDEM ERRADA — translate no fim
+ctx.translate(110, 50);
+ctx.rotate(Math.PI / 2);
+ctx.translate(-110, -50);
+ctx.translate(50, 0);        // ERRADO! posição diferente
+desenhaCasa();`;
+  }
+
+  document.getElementById('codigo').textContent = codigo;
+}
+
+mostrar('certa');
+</script>
+</body>
+</html>
