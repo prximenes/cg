@@ -28,6 +28,12 @@ ctx.translate(110, 50);     // 3a op: volta
 ctx.scale(2, 2);            // 2a op: escala
 ctx.translate(-110, -50);   // 1a op: leva p/ origem
 desenhaCasa();
+
+// Casa original (por cima, para comparar)
+ctx.setTransform(1, 0, 0, 1, 0, 0);
+ctx.globalAlpha = 0.5;
+desenhaCasa();
+ctx.globalAlpha = 1;
 </script>
 </body>
 </html>
