@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Sistema Solar 2D — Exemplo Nota 10</title>
+  <style>
+    body { margin: 0; background: #000; overflow: hidden; }
+    canvas { display: block; }
+    #info { position: absolute; top: 10px; left: 10px; color: #aaa;
+      font: 13px monospace; background: rgba(0,0,0,0.6); padding: 8px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<div id="info">
+  Setas: mover câmera | +/-: zoom | Espaço: pausar | R: resetar
+</div>
+
+<script>
+// =============================================================
+// SETUP DO CANVAS
+// =============================================================
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+// =============================================================
+// ESTADO GLOBAL
+// =============================================================
+let tempo = 0;
+let pausado = false;
+let cameraX = 0, cameraY = 0;
+let zoom = 1;
+
+// =============================================================
+// PASSO 1: FUNÇÕES DE DESENHO
+// Cada objeto é desenhado centrado na ORIGEM (0,0).
+// As transformações posicionam, giram e escalam.
+// =============================================================
+
+function desenhaCirculo(raio, cor, borda) {
+  ctx.beginPath();
+  ctx.arc(0, 0, raio, 0, Math.PI * 2);
+  ctx.fillStyle = cor;
+  ctx.fill();
+  if (borda) {
+    ctx.strokeStyle = borda;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+}
+
+function desenhaAnel(raioInterno, raioExterno, cor) {
+  ctx.beginPath();
+  ctx.arc(0, 0, raioExterno, 0, Math.PI * 2);
+  ctx.arc(0, 0, raioInterno, 0, Math.PI * 2, true);
+  ctx.fillStyle = cor;
+  ctx.fill();
+}
+
+function desenhaEstrela(x, y, tamanho, brilho) {
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 0.3 + 0.7 * brilho;
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(x - tamanho/2, y - tamanho/2, tamanho, tamanho);
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+function desenhaNave() {
+  ctx.beginPath();
+  ctx.moveTo(12, 0);
+  ctx.lineTo(-8, -7);
+  ctx.lineTo(-4, 0);
+  ctx.lineTo(-8, 7);
+  ctx.closePath();
+  ctx.fillStyle = '#ddd';
+  ctx.fill();
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+}
+
+// =============================================================
+// PASSO 2: DADOS DOS PLANETAS
+// Cada planeta tem: distância ao sol, velocidade orbital,
+// velocidade de rotação, raio, cor, e opcionalmente luas.
+// =============================================================
+
+const sol = { raio: 40, cor: '#FFD700' };
+
+const planetas = [
+  {
+    nome: 'Mercúrio', dist: 80, velOrbita: 0.04, velRotacao: 0.01,
+    raio: 6, cor: '#aaa', luas: []
+  },
+  {
+    nome: 'Vênus', dist: 120, velOrbita: 0.025, velRotacao: -0.008,
+    raio: 10, cor: '#e8a840', luas: []
+  },
+  {
+    nome: 'Terra', dist: 175, velOrbita: 0.018, velRotacao: 0.03,
+    raio: 12, cor: '#4488ff', luas: [
+      { nome: 'Lua', dist: 24, velOrbita: 0.06, raio: 4, cor: '#ccc' }
+    ]
+  },
+  {
+    nome: 'Marte', dist: 230, velOrbita: 0.012, velRotacao: 0.028,
+    raio: 9, cor: '#cc4422', luas: [
+      { nome: 'Fobos', dist: 18, velOrbita: 0.08, raio: 3, cor: '#aa8866' },
+      { nome: 'Deimos', dist: 28, velOrbita: 0.05, raio: 2, cor: '#887766' }
+    ]
+  },
+  {
+    nome: 'Júpiter', dist: 320, velOrbita: 0.006, velRotacao: 0.05,
+    raio: 28, cor: '#ddaa66', luas: [
+      { nome: 'Io', dist: 40, velOrbita: 0.07, raio: 4, cor: '#ddcc44' },
+      { nome: 'Europa', dist: 52, velOrbita: 0.05, raio: 5, cor: '#aabbcc' },
+      { nome: 'Ganimedes', dist: 66, velOrbita: 0.03, raio: 6, cor: '#998877' }
+    ]
+  },
+  {
+    nome: 'Saturno', dist: 420, velOrbita: 0.004, velRotacao: 0.04,
+    raio: 24, cor: '#ddcc88', anel: true, luas: [
+      { nome: 'Titã', dist: 50, velOrbita: 0.035, raio: 5, cor: '#ccaa55' }
+    ]
+  }
+];
+
+// Estrelas de fundo (posições fixas)
+const estrelas = [];
+for (let i = 0; i < 200; i++) {
+  estrelas.push({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
+    t: Math.random() * 2,
+    v: 0.5 + Math.random() * 2
+  });
+}
+
+// Nave espacial
+const nave = { angulo: 0, dist: 175, velAngular: 0.009 };
+
+// =============================================================
+// PASSO 3: LOOP DE ANIMAÇÃO
+// =============================================================
+
+function animar() {
+  // --- RESET da matriz (obrigatório!) ---
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Fundo
+  ctx.fillStyle = '#050510';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Estrelas (sem transformação de câmera, ficam fixas)
+  estrelas.forEach(function(e) {
+    e.t += 0.016;
+    var brilho = 0.5 + 0.5 * Math.sin(e.t * e.v);
+    desenhaEstrela(e.x, e.y, 1.5, brilho);
+  });
+
+  // --- CÂMERA: translate + scale (zoom) ---
+  // PASSO 4: Transformação de câmera
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.translate(canvas.width / 2, canvas.height / 2);
+  ctx.scale(zoom, zoom);
+  ctx.translate(-cameraX, -cameraY);
+
+  // --- Órbitas (tracejadas) ---
+  ctx.setLineDash([4, 6]);
+  ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+  ctx.lineWidth = 1;
+  planetas.forEach(function(p) {
+    ctx.beginPath();
+    ctx.arc(0, 0, p.dist, 0, Math.PI * 2);
+    ctx.stroke();
+  });
+  ctx.setLineDash([]);
+
+  // --- SOL ---
+  // PASSO 5: Desenho do Sol com escala pulsante (ponto fixo na origem)
+  ctx.save();
+    var pulso = 1 + 0.05 * Math.sin(tempo * 3);
+    ctx.scale(pulso, pulso);  // escala com ponto fixo em (0,0)
+    desenhaCirculo(sol.raio, sol.cor);
+
+    // Brilho ao redor
+    ctx.globalAlpha = 0.15 + 0.1 * Math.sin(tempo * 2);
+    desenhaCirculo(sol.raio * 1.6, '#FFD700');
+    ctx.globalAlpha = 1;
+  ctx.restore();
+
+  // --- PLANETAS ---
+  planetas.forEach(function(p) {
+    // PASSO 6: Cada planeta = rotate (órbita) + translate (distância)
+    // Hierarquia: as luas herdam a transformação do planeta pai
+    ctx.save();
+
+      // Rotação orbital ao redor do Sol (ponto fixo = origem = Sol)
+      ctx.rotate(tempo * p.velOrbita);
+      // Translada para a distância orbital
+      ctx.translate(p.dist, 0);
+
+      // PASSO 7: Rotação própria do planeta (ao redor de si mesmo)
+      ctx.save();
+        ctx.rotate(tempo * p.velRotacao);
+
+        // Anel de Saturno (reflexão: ctx.scale(1, 0.3) para achatar)
+        if (p.anel) {
+          ctx.save();
+            ctx.scale(1, 0.3);  // achata = efeito de perspectiva
+            desenhaAnel(p.raio + 4, p.raio + 14, 'rgba(210,190,140,0.5)');
+          ctx.restore();
+        }
+
+        desenhaCirculo(p.raio, p.cor, 'rgba(255,255,255,0.3)');
+      ctx.restore();
+
+      // PASSO 8: Luas — hierarquia de transformações!
+      // A lua herda o translate do planeta, então orbita ao redor dele.
+      p.luas.forEach(function(lua) {
+        ctx.save();
+          ctx.rotate(tempo * lua.velOrbita);
+          ctx.translate(lua.dist, 0);
+          desenhaCirculo(lua.raio, lua.cor);
+        ctx.restore();
+      });
+
+      // Nome do planeta
+      ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      ctx.font = '10px sans-serif';
+      ctx.fillText(p.nome, -p.raio, -p.raio - 6);
+
+    ctx.restore();
+  });
+
+  // --- NAVE ESPACIAL ---
+  // PASSO 9: Composição completa: rotate + translate + rotate (aponta na direção)
+  ctx.save();
+    nave.angulo += nave.velAngular;
+    ctx.rotate(nave.angulo);
+    ctx.translate(nave.dist + 35, 0);
+    ctx.rotate(Math.PI / 2 + nave.angulo * 0.5);
+    ctx.scale(1.5, 1.5);
+    desenhaNave();
+  ctx.restore();
+
+  // Atualiza tempo
+  if (!pausado) tempo += 0.016;
+
+  requestAnimationFrame(animar);
+}
+
+// =============================================================
+// PASSO 10: INTERATIVIDADE (teclado)
+// =============================================================
+document.addEventListener('keydown', function(e) {
+  var vel = 20 / zoom;
+  switch (e.key) {
+    case 'ArrowLeft':  cameraX -= vel; break;
+    case 'ArrowRight': cameraX += vel; break;
+    case 'ArrowUp':    cameraY -= vel; break;
+    case 'ArrowDown':  cameraY += vel; break;
+    case '+': case '=': zoom *= 1.1; break;
+    case '-':           zoom /= 1.1; break;
+    case ' ':           pausado = !pausado; e.preventDefault(); break;
+    case 'r': case 'R': cameraX = 0; cameraY = 0; zoom = 1; break;
+  }
+});
+
+window.addEventListener('resize', function() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+});
+
+// Inicia
+animar();
+</script>
+</body>
+</html>
